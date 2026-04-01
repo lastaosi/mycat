@@ -1,0 +1,28 @@
+CREATE TABLE breed_monthly_guide (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    breedId INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    weightMinG INTEGER NOT NULL,
+    weightMaxG INTEGER NOT NULL,
+    foodDryG INTEGER NOT NULL,
+    foodWetG INTEGER NOT NULL,
+    waterMl INTEGER NOT NULL,
+    treatMaxG INTEGER NOT NULL,
+    FOREIGN KEY (breedId) REFERENCES breed(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_breed_monthly_breedId ON breed_monthly_guide(breedId);
+
+getGuideForMonth:
+SELECT * FROM breed_monthly_guide
+WHERE breedId = :breedId AND month <= :currentMonth
+ORDER BY month DESC
+LIMIT 1;
+
+getAllGuidesByBreed:
+SELECT * FROM breed_monthly_guide
+WHERE breedId = :breedId
+ORDER BY month ASC;
+
+getCount:
+SELECT COUNT(*) FROM breed_monthly_guide;

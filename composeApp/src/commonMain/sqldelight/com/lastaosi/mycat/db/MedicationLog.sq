@@ -1,0 +1,27 @@
+CREATE TABLE medication_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    medicationId INTEGER NOT NULL,
+    scheduledAt INTEGER NOT NULL,
+    takenAt INTEGER,
+    isSkipped INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (medicationId) REFERENCES medication(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_medication_log_medicationId ON medication_log(medicationId);
+
+insert:
+INSERT INTO medication_log (medicationId, scheduledAt, takenAt, isSkipped)
+VALUES (:medicationId, :scheduledAt, :takenAt, :isSkipped);
+
+markAsTaken:
+UPDATE medication_log SET takenAt = :takenAt
+WHERE id = :id;
+
+markAsSkipped:
+UPDATE medication_log SET isSkipped = 1
+WHERE id = :id;
+
+getLogsByMedication:
+SELECT * FROM medication_log
+WHERE medicationId = :medicationId
+ORDER BY scheduledAt DESC;

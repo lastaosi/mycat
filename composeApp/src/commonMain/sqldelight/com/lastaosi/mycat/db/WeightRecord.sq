@@ -1,0 +1,28 @@
+CREATE TABLE weight_record (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    catId INTEGER NOT NULL,
+    weightG INTEGER NOT NULL,
+    recordedAt INTEGER NOT NULL,
+    memo TEXT,
+    FOREIGN KEY (catId) REFERENCES cat(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_weight_record_catId ON weight_record(catId);
+
+insert:
+INSERT INTO weight_record (catId, weightG, recordedAt, memo)
+VALUES (:catId, :weightG, :recordedAt, :memo);
+
+delete:
+DELETE FROM weight_record WHERE id = :id;
+
+getWeightHistory:
+SELECT * FROM weight_record
+WHERE catId = :catId
+ORDER BY recordedAt ASC;
+
+getLatestWeight:
+SELECT * FROM weight_record
+WHERE catId = :catId
+ORDER BY recordedAt DESC
+LIMIT 1;
