@@ -1,0 +1,50 @@
+CREATE TABLE medication (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    catId INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    dosage TEXT,
+    medicationType TEXT NOT NULL,
+    intervalDays INTEGER,
+    startDate INTEGER NOT NULL,
+    endDate INTEGER,
+    memo TEXT,
+    isActive INTEGER NOT NULL DEFAULT 1,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY (catId) REFERENCES cat(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_medication_catId ON medication(catId);
+
+insert:
+INSERT INTO medication (
+    catId, name, dosage, medicationType, intervalDays,
+    startDate, endDate, memo, isActive, createdAt
+) VALUES (
+    :catId, :name, :dosage, :medicationType, :intervalDays,
+    :startDate, :endDate, :memo, :isActive, :createdAt
+);
+
+update:
+UPDATE medication SET
+    name = :name,
+    dosage = :dosage,
+    medicationType = :medicationType,
+    intervalDays = :intervalDays,
+    startDate = :startDate,
+    endDate = :endDate,
+    memo = :memo,
+    isActive = :isActive
+WHERE id = :id;
+
+delete:
+DELETE FROM medication WHERE id = :id;
+
+getActiveMedications:
+SELECT * FROM medication
+WHERE catId = :catId AND isActive = 1
+ORDER BY createdAt DESC;
+
+getAllMedications:
+SELECT * FROM medication
+WHERE catId = :catId
+ORDER BY createdAt DESC;

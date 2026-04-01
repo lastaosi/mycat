@@ -1,0 +1,30 @@
+CREATE TABLE breed (
+    id INTEGER PRIMARY KEY,
+    nameKo TEXT NOT NULL,
+    nameEn TEXT NOT NULL,
+    origin TEXT NOT NULL,
+    sizeCategory TEXT NOT NULL,
+    coatType TEXT NOT NULL,
+    adultWeightMinG INTEGER NOT NULL,
+    adultWeightMaxG INTEGER NOT NULL,
+    adultAgeMonth INTEGER NOT NULL,
+    lifeExpectancyMin INTEGER NOT NULL,
+    lifeExpectancyMax INTEGER NOT NULL,
+    commonDisease TEXT NOT NULL,
+    breedNote TEXT NOT NULL
+);
+
+getAllBreeds:
+SELECT * FROM breed ORDER BY nameKo ASC;
+
+getBreedById:
+SELECT * FROM breed WHERE id = :breedId;
+
+searchBreeds:
+SELECT * FROM breed
+WHERE nameKo LIKE '%' || :keyword || '%'
+OR nameEn LIKE '%' || :keyword || '%'
+ORDER BY nameKo ASC;
+
+getCount:
+SELECT COUNT(*) FROM breed;

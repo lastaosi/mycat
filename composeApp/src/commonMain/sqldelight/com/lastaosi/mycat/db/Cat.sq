@@ -1,0 +1,66 @@
+CREATE TABLE cat (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    birthDate TEXT NOT NULL,
+    gender TEXT NOT NULL,
+    breedId INTEGER,
+    breedNameCustom TEXT,
+    geminiBreedRaw TEXT,
+    geminiConfidence REAL,
+    weightG INTEGER,
+    heightCm REAL,
+    photoPath TEXT,
+    isNeutered INTEGER NOT NULL DEFAULT 0,
+    isRepresentative INTEGER NOT NULL DEFAULT 0,
+    memo TEXT,
+    createdAt INTEGER NOT NULL,
+    FOREIGN KEY (breedId) REFERENCES breed(id)
+);
+
+CREATE INDEX idx_cat_isRepresentative ON cat(isRepresentative);
+
+insert:
+INSERT INTO cat (
+    name, birthDate, gender, breedId, breedNameCustom,
+    geminiBreedRaw, geminiConfidence, weightG, heightCm,
+    photoPath, isNeutered, isRepresentative, memo, createdAt
+) VALUES (
+    :name, :birthDate, :gender, :breedId, :breedNameCustom,
+    :geminiBreedRaw, :geminiConfidence, :weightG, :heightCm,
+    :photoPath, :isNeutered, :isRepresentative, :memo, :createdAt
+);
+
+update:
+UPDATE cat SET
+    name = :name,
+    birthDate = :birthDate,
+    gender = :gender,
+    breedId = :breedId,
+    breedNameCustom = :breedNameCustom,
+    geminiBreedRaw = :geminiBreedRaw,
+    geminiConfidence = :geminiConfidence,
+    weightG = :weightG,
+    heightCm = :heightCm,
+    photoPath = :photoPath,
+    isNeutered = :isNeutered,
+    isRepresentative = :isRepresentative,
+    memo = :memo
+WHERE id = :id;
+
+delete:
+DELETE FROM cat WHERE id = :id;
+
+getAllCats:
+SELECT * FROM cat ORDER BY createdAt ASC;
+
+getCatById:
+SELECT * FROM cat WHERE id = :id;
+
+getRepresentativeCat:
+SELECT * FROM cat WHERE isRepresentative = 1 LIMIT 1;
+
+setRepresentative:
+UPDATE cat SET isRepresentative = CASE WHEN id = :id THEN 1 ELSE 0 END;
+
+getCount:
+SELECT COUNT(*) FROM cat;

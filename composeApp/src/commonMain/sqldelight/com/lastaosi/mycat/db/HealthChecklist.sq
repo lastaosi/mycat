@@ -1,0 +1,26 @@
+CREATE TABLE health_checklist (
+    id INTEGER PRIMARY KEY,
+    month INTEGER NOT NULL,
+    itemType TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    isBreedSpecific INTEGER NOT NULL,
+    isRecommended INTEGER NOT NULL
+);
+
+getChecklistUpToMonth:
+SELECT * FROM health_checklist
+WHERE month <= :currentMonth
+ORDER BY month ASC;
+
+getChecklistByMonth:
+SELECT * FROM health_checklist
+WHERE month = :month;
+
+getChecklistByType:
+SELECT * FROM health_checklist
+WHERE itemType = :type
+ORDER BY month ASC;
+
+getCount:
+SELECT COUNT(*) FROM health_checklist;

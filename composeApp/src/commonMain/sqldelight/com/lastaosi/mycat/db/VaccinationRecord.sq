@@ -1,0 +1,42 @@
+CREATE TABLE vaccination_record (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    catId INTEGER NOT NULL,
+    checklistId INTEGER,
+    title TEXT NOT NULL,
+    vaccinatedAt INTEGER NOT NULL,
+    nextDueAt INTEGER,
+    memo TEXT,
+    isNotificationEnabled INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (catId) REFERENCES cat(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_vaccination_catId ON vaccination_record(catId);
+
+insert:
+INSERT INTO vaccination_record (
+    catId, checklistId, title, vaccinatedAt, nextDueAt, memo, isNotificationEnabled
+) VALUES (
+    :catId, :checklistId, :title, :vaccinatedAt, :nextDueAt, :memo, :isNotificationEnabled
+);
+
+update:
+UPDATE vaccination_record SET
+    title = :title,
+    vaccinatedAt = :vaccinatedAt,
+    nextDueAt = :nextDueAt,
+    memo = :memo,
+    isNotificationEnabled = :isNotificationEnabled
+WHERE id = :id;
+
+delete:
+DELETE FROM vaccination_record WHERE id = :id;
+
+getVaccinationsByCat:
+SELECT * FROM vaccination_record
+WHERE catId = :catId
+ORDER BY vaccinatedAt ASC;
+
+getUpcomingVaccinations:
+SELECT * FROM vaccination_record
+WHERE nextDueAt > :fromTimestamp
+AND isNotificationEnabled = 1;

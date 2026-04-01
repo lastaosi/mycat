@@ -1,0 +1,37 @@
+CREATE TABLE cat_diary (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    catId INTEGER NOT NULL,
+    title TEXT,
+    content TEXT NOT NULL,
+    mood TEXT,
+    photoPath TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    FOREIGN KEY (catId) REFERENCES cat(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_cat_diary_catId ON cat_diary(catId);
+
+insert:
+INSERT INTO cat_diary (catId, title, content, mood, photoPath, createdAt, updatedAt)
+VALUES (:catId, :title, :content, :mood, :photoPath, :createdAt, :updatedAt);
+
+update:
+UPDATE cat_diary SET
+    title = :title,
+    content = :content,
+    mood = :mood,
+    photoPath = :photoPath,
+    updatedAt = :updatedAt
+WHERE id = :id;
+
+delete:
+DELETE FROM cat_diary WHERE id = :id;
+
+getDiariesByCat:
+SELECT * FROM cat_diary
+WHERE catId = :catId
+ORDER BY createdAt DESC;
+
+getDiaryById:
+SELECT * FROM cat_diary WHERE id = :id;
