@@ -1,0 +1,20 @@
+CREATE TABLE cat_tip (
+    id INTEGER PRIMARY KEY,
+    content TEXT NOT NULL,
+    category TEXT NOT NULL
+);
+
+getTipsByCategory:
+SELECT * FROM cat_tip WHERE category = :category;
+
+getRandomTip:
+SELECT * FROM cat_tip ORDER BY RANDOM() LIMIT 1;
+
+getRandomTipByCategory:
+SELECT * FROM cat_tip WHERE category = :category ORDER BY RANDOM() LIMIT 1;
+
+getAllTips:
+SELECT * FROM cat_tip ORDER BY id ASC;
+
+getCount:
+SELECT COUNT(*) FROM cat_tip;

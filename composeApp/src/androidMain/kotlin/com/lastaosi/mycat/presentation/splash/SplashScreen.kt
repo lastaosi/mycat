@@ -25,13 +25,17 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lastaosi.mycat.R
+import com.lastaosi.mycat.presentation.profile.ProfileRegisterContent
+import com.lastaosi.mycat.presentation.profile.ProfileRegisterUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.text.toInt
 
 private val SplashBackground = Color(0xFFFFF8F0)
 
@@ -43,6 +47,25 @@ fun SplashScreen(
 ) {
     val destination by viewModel.destination.collectAsState()
 
+
+
+    // ViewModel 상태에 따라 화면 전환
+    LaunchedEffect(destination) {
+        when (destination) {
+            is SplashDestination.Main -> onNavigateToMain()
+            is SplashDestination.ProfileRegister -> onNavigateToProfileRegister()
+            SplashDestination.Loading -> Unit
+        }
+    }
+
+    SplashContent()
+
+}
+
+@Composable
+fun SplashContent() {
+    // 기존 SplashScreen UI 코드 전체 여기로 이동
+    // walkOffsetX, runOffsetX 등 애니메이션 코드 포함
     // walk 좌우 왕복
     val walkOffsetX = remember { Animatable(-400f) }
     var walkGoingRight by remember { mutableStateOf(true) }
@@ -91,16 +114,6 @@ fun SplashScreen(
             )
         }
     }
-
-    // ViewModel 상태에 따라 화면 전환
-    LaunchedEffect(destination) {
-        when (destination) {
-            is SplashDestination.Main -> onNavigateToMain()
-            is SplashDestination.ProfileRegister -> onNavigateToProfileRegister()
-            SplashDestination.Loading -> Unit
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -171,7 +184,13 @@ fun SplashScreen(
             color = Color(0xFFAA8866),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 24.dp)
+                .padding(bottom = 30.dp)
         )
     }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFFFFF8F0)
+@Composable
+fun SplashContentPreview() {
+    SplashContent()
 }
