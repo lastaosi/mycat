@@ -25,3 +25,6 @@ ORDER BY alarmTime ASC;
 
 getEnabledAlarms:
 SELECT * FROM medication_alarm WHERE isEnabled = 1;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

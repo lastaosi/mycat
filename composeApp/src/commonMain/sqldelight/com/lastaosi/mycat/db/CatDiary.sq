@@ -35,3 +35,6 @@ ORDER BY createdAt DESC;
 
 getDiaryById:
 SELECT * FROM cat_diary WHERE id = :id;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

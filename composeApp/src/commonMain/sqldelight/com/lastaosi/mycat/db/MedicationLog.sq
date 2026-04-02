@@ -25,3 +25,6 @@ getLogsByMedication:
 SELECT * FROM medication_log
 WHERE medicationId = :medicationId
 ORDER BY scheduledAt DESC;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

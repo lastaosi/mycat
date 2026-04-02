@@ -26,3 +26,6 @@ SELECT * FROM weight_record
 WHERE catId = :catId
 ORDER BY recordedAt DESC
 LIMIT 1;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

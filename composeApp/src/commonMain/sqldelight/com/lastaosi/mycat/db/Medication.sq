@@ -48,3 +48,6 @@ getAllMedications:
 SELECT * FROM medication
 WHERE catId = :catId
 ORDER BY createdAt DESC;
+
+lastInsertRowId:
+SELECT last_insert_rowid();
