@@ -8,6 +8,9 @@ import com.lastaosi.mycat.domain.model.Cat
 import com.lastaosi.mycat.domain.model.Gender
 import com.lastaosi.mycat.domain.repository.BreedRepository
 import com.lastaosi.mycat.domain.repository.CatRepository
+import com.lastaosi.mycat.domain.usecase.InsertCatUseCase
+import com.lastaosi.mycat.domain.usecase.RecognizeBreedUseCase
+import com.lastaosi.mycat.domain.usecase.SearchBreedUseCase
 import com.lastaosi.mycat.util.L
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -56,9 +59,9 @@ data class ProfileRegisterUiState(
  * 4. 유효성 검사 후 Cat 저장
  */
 class ProfileRegisterViewModel(
-    private val catRepository: CatRepository,
-    private val geminiService: GeminiService,
-    private val breedRepository: BreedRepository
+    private val insertCatUseCase: InsertCatUseCase,
+    private val recognizeBreedUseCase: RecognizeBreedUseCase,
+    private val searchBreedUseCase: SearchBreedUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileRegisterUiState())
@@ -176,7 +179,7 @@ class ProfileRegisterViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                catRepository.insert(
+                insertCatUseCase(
                     Cat(
                         name = state.name,
                         birthDate = state.birthDate,
@@ -195,18 +198,6 @@ class ProfileRegisterViewModel(
                     )
                 )
                 // 저장 후 DB 확인용 로그
-                val count = catRepository.getCount()
-                L.d("고양이 등록 성공!")
-                L.d(
-                    "이름" to state.name,
-                    "생년월" to state.birthDate,
-                    "성별" to state.gender,
-                    "품종ID" to state.breedId,
-                    "품종명" to state.breedNameCustom,
-                    "체중(g)" to state.weightG.toIntOrNull()?.times(1000),
-                    "중성화" to state.isNeutered,
-                    "총 등록 마릿수" to count
-                )
                 _uiState.update { it.copy(isSaved = true, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {
@@ -222,30 +213,20 @@ class ProfileRegisterViewModel(
      */
     fun recognizeBreed(imageBytes: ByteArray) {
         viewModelScope.launch {
-
             _uiState.update { it.copy(isLoading = true) }
-            geminiService.recognizeBreed(imageBytes)
+
+            recognizeBreedUseCase(imageBytes)
                 .onSuccess { result ->
+                    L.d("Gemini 인식 결과: ${result.geminiRaw}")
+                    L.d("DB 매칭 결과: ${result.matchedBreed}")
 
-                    val matchedBreed = breedRepository.searchBreeds(result.breedName)
-                        .first()
-                        .firstOrNull()
-
-                    L.d("검색 키워드: ${result.breedName}")
-                    L.d("검색 결과: $matchedBreed")
-
-// 직접 전체 품종 조회해서 비교
-                    breedRepository.getAllBreeds()
-                        .first()
-                        .filter { it.nameKo.contains("코리안") }
-                        .forEach { L.d("DB 품종명: '${it.nameKo}'") }
                     _uiState.update {
                         it.copy(
-                            geminiBreedRaw = result.breedName,
-                            breedNameCustom = result.breedName,
+                            geminiBreedRaw = result.geminiRaw,
+                            breedNameCustom = result.geminiRaw,
                             geminiConfidence = result.confidence,
-                            breedSearchQuery = result.breedName,
-                            breedId = matchedBreed?.id,
+                            breedSearchQuery = result.geminiRaw,
+                            breedId = result.matchedBreed?.id,
                             isLoading = false
                         )
                     }
@@ -277,9 +258,9 @@ class ProfileRegisterViewModel(
 
     private fun searchBreeds(query: String) {
         viewModelScope.launch {
-            breedRepository.searchBreeds(query)
+            searchBreedUseCase(query)
                 .collect { breeds ->
-                    _uiState.update { it.copy(breedSearchResults = breeds.take(5)) }
+                    _uiState.update { it.copy(breedSearchResults = breeds) }
                 }
         }
     }

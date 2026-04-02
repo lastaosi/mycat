@@ -68,6 +68,7 @@ import com.lastaosi.mycat.domain.model.Breed
 import com.lastaosi.mycat.domain.model.Gender
 import com.lastaosi.mycat.util.BirthDateVisualTransformation
 import org.koin.compose.viewmodel.koinViewModel
+import com.lastaosi.mycat.util.saveImageToInternalStorage
 import java.io.File
 
 private val BrownPrimary = Color(0xFF8B5E3C)
@@ -131,7 +132,10 @@ fun ProfileRegisterContent(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
-        uri?.toString()?.let { onPhotoSelected(it) }
+        uri?.let {
+            val savedPath = saveImageToInternalStorage(context, it)
+            savedPath?.let { path -> onPhotoSelected(path) }
+        }
     }
 
     // 카메라 런처
@@ -139,7 +143,10 @@ fun ProfileRegisterContent(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success) {
-            cameraImageUri?.toString()?.let { onPhotoSelected(it) }
+            cameraImageUri?.let { uri ->
+                val savedPath = saveImageToInternalStorage(context, uri)
+                savedPath?.let { path -> onPhotoSelected(path) }
+            }
         }
     }
 
@@ -268,27 +275,8 @@ fun ProfileRegisterContent(
             Button(
                 onClick = {
                     uiState.photoPath?.let { path ->
-                        val uri = android.net.Uri.parse(path)
-                        val imageBytes = context.contentResolver
-                            .openInputStream(uri)
-                            ?.use { stream ->
-                                // 비트맵으로 로드 후 리사이즈
-                                val bitmap = android.graphics.BitmapFactory.decodeStream(stream)
-                                val resized = android.graphics.Bitmap.createScaledBitmap(
-                                    bitmap,
-                                    800,
-                                    (800f * bitmap.height / bitmap.width).toInt(),
-                                    true
-                                )
-                                val outputStream = java.io.ByteArrayOutputStream()
-                                resized.compress(
-                                    android.graphics.Bitmap.CompressFormat.JPEG,
-                                    80,
-                                    outputStream
-                                )
-                                outputStream.toByteArray()
-                            }
-                        imageBytes?.let {  onRecognizeBreed(it) }
+                        val imageBytes = File(path).readBytes()
+                        onRecognizeBreed(imageBytes)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = BrownPrimary),

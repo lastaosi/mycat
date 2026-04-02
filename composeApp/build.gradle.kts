@@ -36,6 +36,10 @@ kotlin {
             implementation(libs.coil.network)
             implementation(libs.ktor.client.android)
             implementation(libs.androidx.compose.material.icons)
+            implementation(libs.androidx.exifinterface)
+            implementation(libs.vico.compose)
+            implementation(libs.vico.compose.m3)
+            implementation(libs.vico.core)
 
         }
         commonMain.dependencies {

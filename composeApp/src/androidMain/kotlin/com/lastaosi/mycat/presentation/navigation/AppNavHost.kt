@@ -1,27 +1,24 @@
 package com.lastaosi.mycat.presentation.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.lastaosi.mycat.presentation.main.MainScreen
 import com.lastaosi.mycat.presentation.profile.ProfileRegisterScreen
 import com.lastaosi.mycat.presentation.splash.SplashScreen
+import com.lastaosi.mycat.presentation.weight.WeightScreen
 
-/**
- * 앱 전체 Navigation 그래프.
- * Splash → ProfileRegister (첫 실행) 또는 Main (기존 사용자)
- */
 @Composable
 fun AppNavHost(
-    navController: NavHostController,
-    startDestination: String = NavRoutes.Splash.route,
-    modifier: Modifier = Modifier
+    navController: NavHostController = rememberNavController()
 ) {
     NavHost(
         navController = navController,
-        startDestination = startDestination,
-        modifier = modifier
+        startDestination = NavRoutes.Splash.route
     ) {
         composable(NavRoutes.Splash.route) {
             SplashScreen(
@@ -49,7 +46,19 @@ fun AppNavHost(
         }
 
         composable(NavRoutes.Main.route) {
-            // 추후 구현
+            MainScreen(navController = navController)
+        }
+
+        // WeightGraph 추가
+        composable(
+            route = NavRoutes.WeightGraph.route,
+            arguments = listOf(navArgument("catId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val catId = backStackEntry.arguments?.getLong("catId") ?: return@composable
+            WeightScreen(
+                catId = catId,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

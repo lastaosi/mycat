@@ -72,6 +72,7 @@
 - Repository 바인딩 (인터페이스 → 구현체, `single`)
 - `HttpClient`, `GeminiService` 등록
 - `CalculateAgeMonthUseCase` 등록 (`factory`)
+- `CatTipRepository` 바인딩 추가
 
 ---
 
@@ -96,6 +97,59 @@
   - `Screen`: ViewModel 주입 + 이벤트 핸들러 위임
   - `Content`: 순수 UI 함수 (카메라/갤러리 런처 포함)
   - `Preview`: `showBackground = true`
+
+---
+
+### Main 화면 구현 + 체중 기록 화면
+
+#### Main 화면
+- `MainViewModel`: 대표 고양이 로드 → 월령 기반 오늘의 급여량·체중 범위 표시
+  - 다가오는 예방접종 알람 (D-Day 표시, D-3 이내 긴급 처리)
+  - 활성 투약 목록 (복용 타입별 레이블)
+  - 최근 일기 미리보기 2건
+  - 랜덤 고양이 팁 (`CatTipRepository.getRandomTip()`)
+- `MainUiState`: `DrawerItem` 열거, `UpcomingAlarm`, `DiaryPreview` 미리보기 모델 포함
+- `MainScreen` / `MainScrollContent` / `MainTopBar` / `MainDrawerContent` 분리
+
+#### 체중 기록 화면
+- `WeightViewModel`: 고양이 ID 기반 체중 히스토리 + 품종 평균 성장 데이터 로드
+  - FAB → 체중 입력 다이얼로그 → `WeightRecord` DB 저장 (kg 입력 → g 변환)
+- `WeightUiState`: `WeightTab`(내 고양이 추이 / 품종 평균 성장), `BreedAvgPoint` 포함
+- `WeightScreen`: 탭 전환 + 체중 입력 다이얼로그 UI
+
+#### CatTip
+- `CatTip` 도메인 모델 + `CatTipRepository` 인터페이스
+- `CatTipRepositoryImpl` 구현체
+- `CatTip.sq` SQLDelight 스키마 추가
+
+#### 기타
+- `Theme.kt`: Material3 앱 테마 설정
+- `ImageUtil.kt`: 이미지 리사이즈 유틸리티
+- `AppNavHost` 업데이트: Main / Weight 화면 라우트 추가
+- `DatabaseModule` 업데이트: CatTip DB 연결
+
+---
+
+### UseCase 도입 리팩토링
+
+#### 신규 UseCase 추가
+- `InsertCatUseCase` — `CatRepository.insert()` 래핑
+- `SearchBreedUseCase` — 품종 검색 + 결과 개수 제한(maxResults=5) 캡슐화
+- `RecognizeBreedUseCase` — Gemini 품종 인식 + DB 매칭 로직 통합
+  - `RecognizeBreedResult(geminiRaw, confidence, matchedBreed)` 반환
+
+#### ProfileRegisterViewModel 리팩토링
+- `CatRepository` / `GeminiService` / `BreedRepository` 직접 의존 → UseCase 3개로 교체
+- 디버그용 `getCount()` 로그, `getAllBreeds()` 필터 코드 제거
+- 품종 검색 결과 limit을 `SearchBreedUseCase` 내부로 이전
+
+#### SplashScreen 분리
+- `SplashScreen` (ViewModel 주입 + 네비게이션 처리)와 `SplashContent` (순수 UI)로 분리
+- `SplashContentPreview` 추가
+
+#### AppModule 업데이트
+- `CatTipRepository` 바인딩 추가
+- `InsertCatUseCase`, `RecognizeBreedUseCase`, `SearchBreedUseCase` 등록
 
 ---
 

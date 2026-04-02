@@ -6,6 +6,7 @@ import com.lastaosi.mycat.data.remote.getGeminiApiKey
 import com.lastaosi.mycat.data.repository.BreedRepositoryImpl
 import com.lastaosi.mycat.data.repository.CatDiaryRepositoryImpl
 import com.lastaosi.mycat.data.repository.CatRepositoryImpl
+import com.lastaosi.mycat.data.repository.CatTipRepositoryImpl
 import com.lastaosi.mycat.data.repository.HealthChecklistRepositoryImpl
 import com.lastaosi.mycat.data.repository.MedicationRepositoryImpl
 import com.lastaosi.mycat.data.repository.WeightRecordRepositoryImpl
@@ -13,11 +14,15 @@ import com.lastaosi.mycat.data.repository.VaccinationRecordRepositoryImpl
 import com.lastaosi.mycat.domain.repository.BreedRepository
 import com.lastaosi.mycat.domain.repository.CatDiaryRepository
 import com.lastaosi.mycat.domain.repository.CatRepository
+import com.lastaosi.mycat.domain.repository.CatTipRepository
 import com.lastaosi.mycat.domain.repository.HealthChecklistRepository
 import com.lastaosi.mycat.domain.repository.MedicationRepository
 import com.lastaosi.mycat.domain.repository.WeightRecordRepository
 import com.lastaosi.mycat.domain.repository.VaccinationRecordRepository
 import com.lastaosi.mycat.domain.usecase.CalculateAgeMonthUseCase
+import com.lastaosi.mycat.domain.usecase.InsertCatUseCase
+import com.lastaosi.mycat.domain.usecase.RecognizeBreedUseCase
+import com.lastaosi.mycat.domain.usecase.SearchBreedUseCase
 import org.koin.dsl.module
 
 /**
@@ -36,7 +41,8 @@ val appModule = module {
     single<MedicationRepository> { MedicationRepositoryImpl(get()) }
     single<CatDiaryRepository> { CatDiaryRepositoryImpl(get()) }
     single<VaccinationRecordRepository> { VaccinationRecordRepositoryImpl(get()) }
-
+    single<CatTipRepository> { CatTipRepositoryImpl(get()) }
+    factory { CalculateAgeMonthUseCase() }
     // Remote
     single { createHttpClient() }
     single {
@@ -48,4 +54,7 @@ val appModule = module {
 
     // UseCase
     factory { CalculateAgeMonthUseCase() }
+    factory { InsertCatUseCase(get()) }
+    factory { RecognizeBreedUseCase(get(), get()) }
+    factory { SearchBreedUseCase(get()) }
 }
