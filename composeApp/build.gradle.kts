@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -31,6 +32,11 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.android)
             implementation(libs.sqldelight.android)
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network)
+            implementation(libs.ktor.client.android)
+            implementation(libs.androidx.compose.material.icons)
+
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)
@@ -46,9 +52,15 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(projects.shared)
             implementation(libs.sqldelight.coroutines)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.json)
+            implementation(libs.ktor.client.logging)
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.native)
+            implementation(libs.ktor.client.darwin)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -72,6 +84,14 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        buildConfigField(
+            "String",
+            "GEMINI_API_KEY",
+            "\"${project.findProperty("GEMINI_API_KEY") ?: ""}\""
+        )
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {

@@ -40,3 +40,6 @@ getUpcomingVaccinations:
 SELECT * FROM vaccination_record
 WHERE nextDueAt > :fromTimestamp
 AND isNotificationEnabled = 1;
+
+lastInsertRowId:
+SELECT last_insert_rowid();

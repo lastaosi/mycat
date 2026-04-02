@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -30,26 +31,30 @@ import androidx.compose.ui.unit.sp
 import com.lastaosi.mycat.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
-import kotlin.random.Random
+import org.koin.compose.viewmodel.koinViewModel
 
 private val SplashBackground = Color(0xFFFFF8F0)
 
 @Composable
-fun SplashScreen(onSplashFinished: () -> Unit) {
+fun SplashScreen(
+    onNavigateToMain: () -> Unit,
+    onNavigateToProfileRegister: () -> Unit,
+    viewModel: SplashViewModel = koinViewModel()
+) {
+    val destination by viewModel.destination.collectAsState()
 
-    // --- walk: 좌우 왕복 ---
+    // walk 좌우 왕복
     val walkOffsetX = remember { Animatable(-400f) }
     var walkGoingRight by remember { mutableStateOf(true) }
 
-    // --- run: 랜덤 방향으로 화면 튕기기 ---
+    // run 랜덤 튕기기
     val runOffsetX = remember { Animatable(0f) }
     val runOffsetY = remember { Animatable(0f) }
     var runDirX by remember { mutableFloatStateOf(1f) }
     var runDirY by remember { mutableFloatStateOf(1f) }
     var runFacingRight by remember { mutableStateOf(true) }
 
-    // walk 좌우 왕복
+    // walk 애니메이션
     LaunchedEffect(Unit) {
         while (true) {
             val target = if (walkGoingRight) 400f else -400f
@@ -65,21 +70,15 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
     // run 랜덤 튕기기
     LaunchedEffect(Unit) {
         while (true) {
-            val stepX = runDirX * 8f
-            val stepY = runDirY * 8f
-            val nextX = runOffsetX.value + stepX
-            val nextY = runOffsetY.value + stepY
-
-            // X 경계 튕기기
-            if (nextX.absoluteValue >= 380f) {
+            val nextX = runOffsetX.value + runDirX * 8f
+            val nextY = runOffsetY.value + runDirY * 8f
+            if (kotlin.math.abs(nextX) >= 380f) {
                 runDirX = -runDirX
                 runFacingRight = runDirX > 0
             }
-            // Y 경계 튕기기
-            if (nextY.absoluteValue >= 700f) {
+            if (kotlin.math.abs(nextY) >= 700f) {
                 runDirY = -runDirY
             }
-
             launch {
                 runOffsetX.animateTo(
                     targetValue = runOffsetX.value + runDirX * 8f,
@@ -93,10 +92,13 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
         }
     }
 
-    // 시드 완료 후 화면 전환 (나중에 ViewModel로 교체)
-    LaunchedEffect(Unit) {
-        delay(3000)
-        onSplashFinished()
+    // ViewModel 상태에 따라 화면 전환
+    LaunchedEffect(destination) {
+        when (destination) {
+            is SplashDestination.Main -> onNavigateToMain()
+            is SplashDestination.ProfileRegister -> onNavigateToProfileRegister()
+            SplashDestination.Loading -> Unit
+        }
     }
 
     Box(
@@ -109,38 +111,38 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
             painter = painterResource(id = R.drawable.byeori_sit),
             contentDescription = "sit",
             modifier = Modifier
-                .size(200.dp)          // 120 → 200
+                .size(200.dp)
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 60.dp)
         )
 
-        // 2. roll — 중앙 상단 고정
+        // 2. roll — 중앙에서 위로
         Image(
             painter = painterResource(id = R.drawable.byeori_roll),
             contentDescription = "roll",
             modifier = Modifier
                 .size(180.dp)
-                .align(Alignment.Center)  // TopCenter → Center
-                .offset(y = (-120).dp)    // 중앙에서 위로 올리기
+                .align(Alignment.Center)
+                .offset(y = (-120).dp)
         )
 
-        // 3. walk — 좌우 왕복 (화면 중하단)
+        // 3. walk — 좌우 왕복
         Image(
             painter = painterResource(id = R.drawable.byeori_walk),
             contentDescription = "walk",
             modifier = Modifier
-                .size(130.dp)          // 100 → 130
+                .size(130.dp)
                 .align(Alignment.Center)
                 .offset { IntOffset(x = walkOffsetX.value.toInt(), y = 180) }
                 .scale(scaleX = if (walkGoingRight) 1f else -1f, scaleY = 1f)
         )
 
-        // 4. run — 랜덤 방향 튕기기 (화면 전체)
+        // 4. run — 랜덤 튕기기
         Image(
             painter = painterResource(id = R.drawable.byeori_run),
             contentDescription = "run",
             modifier = Modifier
-                .size(130.dp)          // 100 → 130
+                .size(130.dp)
                 .align(Alignment.Center)
                 .offset {
                     IntOffset(
@@ -151,7 +153,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 .scale(scaleX = if (runFacingRight) 1f else -1f, scaleY = 1f)
         )
 
-        // 5. 로고 텍스트 — 중앙
+        // 5. 로고 텍스트
         Text(
             text = "My Cat",
             fontSize = 36.sp,
@@ -162,7 +164,7 @@ fun SplashScreen(onSplashFinished: () -> Unit) {
                 .padding(top = 140.dp)
         )
 
-        // 6. 초기 데이터 생성 텍스트 — 최하단
+        // 6. 로딩 텍스트
         Text(
             text = "초기 데이터를 생성중입니다..",
             fontSize = 13.sp,
