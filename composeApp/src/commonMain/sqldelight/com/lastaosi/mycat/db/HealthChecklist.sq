@@ -24,3 +24,6 @@ ORDER BY month ASC;
 
 getCount:
 SELECT COUNT(*) FROM health_checklist;
+
+getAllChecklist:
+SELECT * FROM health_checklist ORDER BY month ASC;

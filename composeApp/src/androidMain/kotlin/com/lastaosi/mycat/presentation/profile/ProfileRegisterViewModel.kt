@@ -37,8 +37,6 @@ data class ProfileRegisterUiState(
     val breedNameCustom: String = "",
     val geminiBreedRaw: String? = null,
     val geminiConfidence: Double? = null,
-    val weightG: String = "",
-    val heightCm: String = "",
     val isNeutered: Boolean = false,
     val memo: String = "",
     val isLoading: Boolean = false,
@@ -61,11 +59,14 @@ data class ProfileRegisterUiState(
 class ProfileRegisterViewModel(
     private val insertCatUseCase: InsertCatUseCase,
     private val recognizeBreedUseCase: RecognizeBreedUseCase,
-    private val searchBreedUseCase: SearchBreedUseCase
+    private val searchBreedUseCase: SearchBreedUseCase,
+    private val catRepository: CatRepository  // 추가 — 수정/로드용
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileRegisterUiState())
     val uiState: StateFlow<ProfileRegisterUiState> = _uiState
+    // catId가 있으면 수정 모드
+    private var editingCatId: Long? = null
 
     fun onPhotoSelected(path: String) {
         _uiState.update { it.copy(photoPath = path) }
@@ -132,13 +133,8 @@ class ProfileRegisterViewModel(
         }
     }
 
-    fun onWeightChanged(weight: String) {
-        _uiState.update { it.copy(weightG = weight) }
-    }
 
-    fun onHeightChanged(height: String) {
-        _uiState.update { it.copy(heightCm = height) }
-    }
+
 
     fun onNeuteredChanged(isNeutered: Boolean) {
         _uiState.update { it.copy(isNeutered = isNeutered) }
@@ -152,6 +148,25 @@ class ProfileRegisterViewModel(
         _uiState.update { it.copy(errorMessage = null) }
     }
 
+    fun loadCat(catId: Long) {
+        editingCatId = catId
+        viewModelScope.launch {
+            val cat = catRepository.getCatById(catId) ?: return@launch
+            _uiState.update {
+                it.copy(
+                    photoPath = cat.photoPath,
+                    name = cat.name,
+                    birthDate = cat.birthDate,
+                    gender = cat.gender,
+                    breedId = cat.breedId,
+                    breedNameCustom = cat.breedNameCustom ?: "",
+                    breedSearchQuery = cat.breedNameCustom ?: "",
+                    isNeutered = cat.isNeutered,
+                    memo = cat.memo ?: ""
+                )
+            }
+        }
+    }
     @OptIn(ExperimentalTime::class)
     fun save() {
         val state = _uiState.value
@@ -179,25 +194,47 @@ class ProfileRegisterViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                insertCatUseCase(
-                    Cat(
-                        name = state.name,
-                        birthDate = state.birthDate,
-                        gender = state.gender,
-                        breedId = state.breedId,
-                        breedNameCustom = state.breedNameCustom.ifBlank { null },
-                        geminiBreedRaw = state.geminiBreedRaw,
-                        geminiConfidence = state.geminiConfidence,
-                        weightG = state.weightG.toIntOrNull()?.times(1000),
-                        heightCm = state.heightCm.toDoubleOrNull(),
-                        photoPath = state.photoPath,
-                        isNeutered = state.isNeutered,
-                        isRepresentative = true,
-                        memo = state.memo.ifBlank { null },
-                        createdAt = Clock.System.now().toEpochMilliseconds()
+                val catId = editingCatId
+                if (catId != null) {
+                    // 수정 모드
+                    val existing = catRepository.getCatById(catId) ?: return@launch
+                    catRepository.update(
+                        existing.copy(
+                            name = state.name,
+                            birthDate = state.birthDate,
+                            gender = state.gender,
+                            breedId = state.breedId,
+                            breedNameCustom = state.breedNameCustom.ifBlank { null },
+                            geminiBreedRaw = state.geminiBreedRaw,
+                            geminiConfidence = state.geminiConfidence,
+                            weightG = null,
+                            heightCm = null,
+                            photoPath = state.photoPath,
+                            isNeutered = state.isNeutered,
+                            memo = state.memo.ifBlank { null }
+                        )
                     )
-                )
-                // 저장 후 DB 확인용 로그
+                } else {
+                    // 추가 모드
+                    insertCatUseCase(
+                        Cat(
+                            name = state.name,
+                            birthDate = state.birthDate,
+                            gender = state.gender,
+                            breedId = state.breedId,
+                            breedNameCustom = state.breedNameCustom.ifBlank { null },
+                            geminiBreedRaw = state.geminiBreedRaw,
+                            geminiConfidence = state.geminiConfidence,
+                            weightG = null,
+                            heightCm = null,
+                            photoPath = state.photoPath,
+                            isNeutered = state.isNeutered,
+                            isRepresentative = false,  // 추가 시 대표 아님
+                            memo = state.memo.ifBlank { null },
+                            createdAt = Clock.System.now().toEpochMilliseconds()
+                        )
+                    )
+                }
                 _uiState.update { it.copy(isSaved = true, isLoading = false) }
             } catch (e: Exception) {
                 _uiState.update {

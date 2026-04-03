@@ -10,6 +10,7 @@ import com.lastaosi.mycat.domain.repository.CatDiaryRepository
 import com.lastaosi.mycat.domain.repository.CatTipRepository
 import com.lastaosi.mycat.domain.repository.MedicationRepository
 import com.lastaosi.mycat.domain.repository.VaccinationRecordRepository
+import com.lastaosi.mycat.domain.repository.WeightRecordRepository
 import com.lastaosi.mycat.domain.usecase.CalculateAgeMonthUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +35,8 @@ class MainViewModel(
     private val calculateAgeMonthUseCase: CalculateAgeMonthUseCase,
     private val vaccinationRecordRepository: VaccinationRecordRepository,
     private val medicationRepository: MedicationRepository,
-    private val catDiaryRepository: CatDiaryRepository
+    private val catDiaryRepository: CatDiaryRepository,
+    private val weightRecordRepository: WeightRecordRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -51,7 +53,12 @@ class MainViewModel(
                     val representative = cats.firstOrNull { it.isRepresentative }
                         ?: cats.firstOrNull()
 
-                    _uiState.update { it.copy(cat = representative) }
+                    _uiState.update {
+                        it.copy(
+                            cat = representative,
+                            allCats = cats  // 추가
+                        )
+                    }
                     representative ?: return@collect
 
                     val ageMonth = calculateAgeMonthUseCase(representative.birthDate)
@@ -67,7 +74,14 @@ class MainViewModel(
                             )
                         }
                     }
-
+                    // 체중 최신값 추가
+                    launch {
+                        weightRecordRepository.getWeightHistory(representative.id)
+                            .collect { records ->
+                                val latest = records.maxByOrNull { it.recordedAt }
+                                _uiState.update { it.copy(latestWeightG = latest?.weightG) }
+                            }
+                    }
                     // 다가오는 예방접종 로드
                     // 추가 데이터 로드
                     loadUpcomingVaccinations()
@@ -76,7 +90,11 @@ class MainViewModel(
                 }
         }
     }
-
+    fun onCatSelected(catId: Long) {
+        viewModelScope.launch {
+            catRepository.setRepresentative(catId)
+        }
+    }
     fun onMenuClick() {
         // 드로어 열기는 Content에서 drawerState로 직접 처리
         // 필요 시 analytics 등 추가

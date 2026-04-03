@@ -40,6 +40,11 @@ kotlin {
             implementation(libs.vico.compose)
             implementation(libs.vico.compose.m3)
             implementation(libs.vico.core)
+            implementation(libs.google.maps)
+            implementation(libs.google.maps.compose)
+            implementation(libs.google.places)
+            implementation(libs.google.location)
+            implementation(libs.androidx.work.runtime)
 
         }
         commonMain.dependencies {
@@ -93,6 +98,13 @@ android {
             "GEMINI_API_KEY",
             "\"${project.findProperty("GEMINI_API_KEY") ?: ""}\""
         )
+        buildConfigField(
+            "String",
+            "MAPS_API_KEY",
+            "\"${project.findProperty("MAPS_API_KEY") ?: ""}\""
+        )
+        manifestPlaceholders["MAPS_API_KEY"] =
+            project.findProperty("MAPS_API_KEY") ?: ""
     }
     buildFeatures {
         buildConfig = true

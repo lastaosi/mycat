@@ -7,4 +7,5 @@ interface HealthChecklistRepository {
     fun getChecklistUpToMonth(currentMonth: Int): Flow<List<HealthChecklist>>
     suspend fun getChecklistByMonth(month: Int): List<HealthChecklist>
     fun getChecklistByType(type: String): Flow<List<HealthChecklist>>
+    fun getAllChecklist(): Flow<List<HealthChecklist>>  // 추가
 }

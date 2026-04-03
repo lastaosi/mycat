@@ -5,7 +5,7 @@ import com.lastaosi.mycat.domain.model.Cat
 /** 사이드 드로어 메뉴 항목 */
 enum class DrawerItem {
     HOME, CARE_GUIDE, WEIGHT, HEALTH_CHECK,
-    VACCINATION, DIARY, MEDICATION, VET_MAP, SETTINGS
+    VACCINATION, DIARY, MEDICATION, VET_MAP, SETTINGS,  PROFILE_EDIT
 }
 
 /**
@@ -15,6 +15,7 @@ enum class DrawerItem {
  */
 data class MainUiState(
     val cat: Cat? = null,
+    val allCats: List<Cat> = emptyList(),  // 추가
     val selectedDrawerItem: DrawerItem = DrawerItem.HOME,
     val todayFoodDryG: Int = 0,
     val todayFoodWetG: Int = 0,
