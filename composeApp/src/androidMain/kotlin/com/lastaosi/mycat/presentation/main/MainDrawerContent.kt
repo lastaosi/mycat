@@ -1,10 +1,13 @@
 package com.lastaosi.mycat.presentation.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.lastaosi.mycat.domain.model.Cat
 import com.lastaosi.mycat.domain.model.Gender
+import com.lastaosi.mycat.presentation.navigation.NavRoutes
 import com.lastaosi.mycat.ui.theme.MyCatColors
 import com.lastaosi.mycat.ui.theme.MyCatTheme
 
@@ -44,15 +48,18 @@ private val drawerMenuItems = listOf(
 @Composable
 fun MainDrawerContent(
     cat: Cat?,
+    allCats: List<Cat>,
     selectedItem: DrawerItem,
-    onItemClick: (DrawerItem) -> Unit
+    onItemClick: (DrawerItem) -> Unit,
+    onCatSelected: (Long) -> Unit,      // 추가
+    onAddCatClick: () -> Unit
 ) {
     ModalDrawerSheet(
         drawerContainerColor = MyCatColors.Background,
         drawerContentColor = MyCatColors.OnBackground
     ) {
         // 헤더 — 고양이 프로필
-        DrawerHeader(cat = cat)
+        DrawerHeader(cat = cat,allCats= allCats,onCatSelected=onCatSelected,onAddCatClick=onAddCatClick,onItemClick)
 
         HorizontalDivider(
             color = MyCatColors.Border,
@@ -86,58 +93,154 @@ fun MainDrawerContent(
 
 // ─── 2. DrawerHeader ────────────────────────────────────────────────
 @Composable
-private fun DrawerHeader(cat: Cat?) {
+private fun DrawerHeader(
+    cat: Cat?,
+    allCats: List<Cat>,
+    onCatSelected: (Long) -> Unit,
+    onAddCatClick: () -> Unit,
+    onItemClick: (DrawerItem) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MyCatColors.Surface)
             .padding(20.dp)
     ) {
-        // 고양이 사진 or 플레이스홀더
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(CircleShape)
-                .background(MyCatColors.Border),
-            contentAlignment = Alignment.Center
-        ) {
-            if (cat?.photoPath != null) {
-                AsyncImage(
-                    model = cat.photoPath,
-                    contentDescription = cat.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+        // 현재 대표 고양이
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(MyCatColors.Border),
+                contentAlignment = Alignment.Center
+            ) {
+                if (cat?.photoPath != null) {
+                    AsyncImage(
+                        model = cat.photoPath,
+                        contentDescription = cat.name,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(text = "🐱", fontSize = 28.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                if (cat != null) {
+                    Text(
+                        text = cat.name,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MyCatColors.OnBackground
+                    )
+                    Text(
+                        text = cat.breedNameCustom ?: "품종 미등록",
+                        fontSize = 12.sp,
+                        color = MyCatColors.TextMuted
+                    )
+                } else {
+                    Text(
+                        text = "고양이를 등록해주세요",
+                        fontSize = 14.sp,
+                        color = MyCatColors.TextMuted
+                    )
+                }
+            }
+
+            // 대표 고양이 이름 옆에 수정 아이콘
+            IconButton(
+                onClick = {
+                    onItemClick(DrawerItem.PROFILE_EDIT)
+                },
+                modifier = Modifier.size(24.dp)
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = "프로필 수정",
+                    tint = MyCatColors.TextMuted,
+                    modifier = Modifier.size(16.dp)
                 )
-            } else {
-                Text(text = "🐱", fontSize = 28.sp)
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
 
-        if (cat != null) {
+        // 고양이 여러 마리일 때 목록 표시
+        if (allCats.size > 1) {
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = MyCatColors.Border, thickness = 0.5.dp)
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
-                text = cat.name,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = MyCatColors.OnBackground
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = buildString {
-                    append(cat.breedNameCustom ?: "품종 미등록")
-                    append(" · ")
-                    append(if (cat.gender == Gender.MALE) "수컷" else if (cat.gender == Gender.FEMALE) "암컷" else "미등록")
-                    if (cat.isNeutered) append(" · 중성화")
-                },
-                fontSize = 12.sp,
+                text = "고양이 전환",
+                fontSize = 11.sp,
                 color = MyCatColors.TextMuted
             )
-        } else {
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                allCats.forEach { c ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { onCatSelected(c.id) }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (c.isRepresentative) MyCatColors.Primary
+                                    else MyCatColors.Border
+                                )
+                                .border(
+                                    width = if (c.isRepresentative) 2.dp else 0.dp,
+                                    color = MyCatColors.Primary,
+                                    shape = CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (c.photoPath != null) {
+                                AsyncImage(
+                                    model = c.photoPath,
+                                    contentDescription = c.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Text(text = "🐱", fontSize = 18.sp)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = c.name,
+                            fontSize = 10.sp,
+                            color = if (c.isRepresentative) MyCatColors.Primary
+                            else MyCatColors.TextMuted,
+                            fontWeight = if (c.isRepresentative) FontWeight.Bold
+                            else FontWeight.Normal
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+        HorizontalDivider(color = MyCatColors.Border, thickness = 0.5.dp)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // 고양이 추가 버튼
+        TextButton(
+            onClick = onAddCatClick,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             Text(
-                text = "고양이를 등록해주세요",
-                fontSize = 14.sp,
-                color = MyCatColors.TextMuted
+                text = "+ 고양이 추가",
+                fontSize = 13.sp,
+                color = MyCatColors.Primary,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -212,7 +315,10 @@ private fun MainDrawerContentPreview() {
                 createdAt = 0L
             ),
             selectedItem = DrawerItem.HOME,
-            onItemClick = {}
+            onItemClick = {},
+            onCatSelected = {},
+            onAddCatClick = {},
+            allCats = emptyList()
         )
     }
 }
@@ -224,8 +330,11 @@ private fun MainDrawerContentNoCatPreview() {
         // 고양이 미등록 상태
         MainDrawerContent(
             cat = null,
+            allCats = emptyList(),
             selectedItem = DrawerItem.HOME,
-            onItemClick = {}
+            onItemClick = {},
+            onCatSelected = {},
+            onAddCatClick = {},
         )
     }
 }

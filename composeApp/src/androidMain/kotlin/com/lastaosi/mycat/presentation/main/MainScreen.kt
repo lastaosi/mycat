@@ -27,17 +27,30 @@ fun MainScreen(
         onMenuClick = viewModel::onMenuClick,
         onDrawerItemClick = viewModel::onDrawerItemClick,
         onRefreshTip = viewModel::refreshTip,
+        onCatSelected = viewModel::onCatSelected,  // 추가
+        onAddCatClick = {                           // 추가
+            navController.navigate(NavRoutes.ProfileRegister.route)
+        },
+
         onNavigate = { item ->
             val catId = uiState.cat?.id ?: return@MainContent
             when (item) {
                 DrawerItem.WEIGHT      -> navController.navigate(NavRoutes.WeightGraph.createRoute(catId))
                 DrawerItem.VACCINATION -> navController.navigate(NavRoutes.Vaccination.createRoute(catId))
-                DrawerItem.DIARY       -> navController.navigate(NavRoutes.Diary.createRoute(catId))
-                DrawerItem.MEDICATION  -> navController.navigate(NavRoutes.Medication.createRoute(catId))
+                DrawerItem.DIARY -> navController.navigate(NavRoutes.Diary.createRoute(catId))
+                DrawerItem.MEDICATION -> navController.navigate(NavRoutes.Medication.createRoute(catId))
                 DrawerItem.VET_MAP     -> navController.navigate(NavRoutes.NearbyVet.route)
+                DrawerItem.HEALTH_CHECK -> navController.navigate(NavRoutes.CatHealth.route)
+                DrawerItem.PROFILE_EDIT -> {
+                    uiState.cat?.id?.let {
+                        navController.navigate(NavRoutes.ProfileEdit.createRoute(it))
+                    }
+                }
+                DrawerItem.VET_MAP -> navController.navigate(NavRoutes.NearbyVet.route)
                 else -> viewModel.onDrawerItemClick(item)
             }
-        }
+        },
+
     )
 }
 
@@ -48,7 +61,9 @@ fun MainContent(
     onMenuClick: () -> Unit,
     onDrawerItemClick: (DrawerItem) -> Unit,
     onRefreshTip: () -> Unit,
-    onNavigate: (DrawerItem) -> Unit  // 추가
+    onNavigate: (DrawerItem) -> Unit, // 추가
+    onCatSelected: (Long) -> Unit,      // 추가
+    onAddCatClick: () -> Unit
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -63,6 +78,10 @@ fun MainContent(
                     scope.launch { drawerState.close() }
                     onNavigate(item)  // 변경
                 }
+                ,
+                allCats = uiState.allCats,
+                onCatSelected = onCatSelected,
+                onAddCatClick = onAddCatClick
             )
         },
         scrimColor = MyCatColors.OnBackground.copy(alpha = 0.3f)
@@ -128,6 +147,8 @@ private fun MainContentPreview() {
             onMenuClick = {},
             onDrawerItemClick = {},
             onRefreshTip = {},
+            onCatSelected = {},
+            onAddCatClick = {},
             onNavigate = {}
 
         )
@@ -143,6 +164,8 @@ private fun MainContentNoCatPreview() {
             onMenuClick = {},
             onDrawerItemClick = {},
             onRefreshTip = {},
+            onCatSelected = {},
+            onAddCatClick = {},
             onNavigate = {}
         )
     }

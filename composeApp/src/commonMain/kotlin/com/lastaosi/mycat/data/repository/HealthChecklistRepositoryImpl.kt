@@ -35,6 +35,12 @@ class HealthChecklistRepositoryImpl(
             .mapToList(Dispatchers.IO)
             .map { list -> list.map { it.toDomain() } }
 
+    override fun getAllChecklist(): Flow<List<HealthChecklist>> =
+        db.healthChecklistQueries.getAllChecklist()
+            .asFlow()
+            .mapToList(Dispatchers.IO)
+            .map { list -> list.map { it.toDomain() } }
+
     private fun com.lastaosi.mycat.db.Health_checklist.toDomain() = HealthChecklist(
         id = id.toInt(),
         month = month.toInt(),

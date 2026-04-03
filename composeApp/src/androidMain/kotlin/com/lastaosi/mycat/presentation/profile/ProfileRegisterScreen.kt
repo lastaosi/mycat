@@ -14,12 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,21 +73,25 @@ private val BeigeBackground = Color(0xFFFFF8F0)
 @Composable
 fun ProfileRegisterScreen(
     onSaved: () -> Unit,
+    catId: Long? = null,
     viewModel: ProfileRegisterViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(catId) {
+        catId?.let { viewModel.loadCat(it) }
+    }
+
     ProfileRegisterContent(
         uiState = uiState,
         onSaved = onSaved,
+        isEditMode = catId != null,
         onPhotoSelected = viewModel::onPhotoSelected,
         onRecognizeBreed = viewModel::recognizeBreed,
         onNameChanged = viewModel::onNameChanged,
         onBirthDateChanged = viewModel::onBirthDateChanged,
         onGenderSelected = viewModel::onGenderSelected,
         onBreedNameCustomChanged = viewModel::onBreedNameCustomChanged,
-        onWeightChanged = viewModel::onWeightChanged,
-        onHeightChanged = viewModel::onHeightChanged,
         onNeuteredChanged = viewModel::onNeuteredChanged,
         onMemoChanged = viewModel::onMemoChanged,
         onSave = viewModel::save,
@@ -105,14 +105,13 @@ fun ProfileRegisterScreen(
 fun ProfileRegisterContent(
     uiState: ProfileRegisterUiState,
     onSaved: () -> Unit,
+    isEditMode: Boolean,
     onPhotoSelected: (String) -> Unit,
     onRecognizeBreed: (ByteArray) -> Unit,
     onNameChanged: (String) -> Unit,
     onBirthDateChanged: (String) -> Unit,
     onGenderSelected: (Gender) -> Unit,
     onBreedNameCustomChanged: (String) -> Unit,
-    onWeightChanged: (String) -> Unit,
-    onHeightChanged: (String) -> Unit,
     onNeuteredChanged: (Boolean) -> Unit,
     onMemoChanged: (String) -> Unit,
     onSave: () -> Unit,
@@ -235,7 +234,7 @@ fun ProfileRegisterContent(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "고양이 등록",
+                text = if (isEditMode) "프로필 수정" else "고양이 등록",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = BrownPrimary
@@ -444,29 +443,6 @@ fun ProfileRegisterContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 체중
-            OutlinedTextField(
-                value = uiState.weightG,
-                onValueChange = onWeightChanged,
-                label = { Text("체중 (kg)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 체고
-            OutlinedTextField(
-                value = uiState.heightCm,
-                onValueChange = onHeightChanged,
-                label = { Text("체고 (cm)") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             // 중성화 여부
             Row(
@@ -513,7 +489,7 @@ fun ProfileRegisterContent(
                     )
                 } else {
                     Text(
-                        text = "등록하기",
+                        text = if (isEditMode) "수정하기" else "등록하기",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -537,13 +513,12 @@ private fun ProfileRegisterContentPreview() {
         onBirthDateChanged = {},
         onGenderSelected = {},
         onBreedNameCustomChanged = {},
-        onWeightChanged = {},
-        onHeightChanged = {},
         onNeuteredChanged = {},
         onMemoChanged = {},
         onBreedSearchQueryChanged = {},  // 추가
         onBreedSelected = {},
-        onSave = {},
+        isEditMode = false,
+        onSave = {}
 
     )
 }
