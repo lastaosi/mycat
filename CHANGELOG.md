@@ -153,9 +153,83 @@
 
 ---
 
+---
+
+## 2026-04-03
+
+### Presentation 레이어 — 신규 화면 구현
+
+#### MedicationScreen (투약 관리)
+- `MedicationViewModel`: 대표 고양이 기준 활성/비활성 투약 목록 로드
+  - 투약 등록 (이름, 타입, 시작일, 종료일, 메모)
+  - 알람 설정 (시각 추가/삭제, 알람별 AlarmManager 예약/취소)
+  - 복약 기록 (`TAKEN` / `SKIPPED`) 저장
+- `MedicationUiState`: 활성·비활성 투약, 선택 투약, 다이얼로그 표시 상태 포함
+
+#### VaccinationScreen (접종 기록)
+- `VaccinationViewModel`: 월령별 체크리스트 + 접종 기록 통합 조회
+  - 접종 완료 처리 (완료일, 다음 접종일 입력)
+  - 미접종/접종완료 항목 분류 표시
+- `VaccinationUiState`: 체크리스트 + 접종 기록 매핑 상태 포함
+
+#### DiaryScreen (일기)
+- `DiaryViewModel`: 대표 고양이 일기 목록 + 작성/삭제
+  - 기분 선택 (`HAPPY` / `NORMAL` / `SAD` / `SICK` / `ANGRY`)
+  - 사진 첨부 (갤러리 선택 → URI 저장)
+- `DiaryUiState`: 일기 목록, 작성 폼 상태 포함
+
+#### HealthCheckScreen (건강 체크리스트)
+- `HealthCheckViewModel`: 고양이 현재 월령 기준 체크리스트 항목 로드
+  - 체크 완료 처리 (완료일 DB 저장)
+  - 월령 범위별 그룹 표시
+- `HealthCheckUiState`: 체크리스트 항목 + 카테고리별 그룹 상태 포함
+
+#### NearbyVetScreen (근처 동물병원)
+- `NearbyVetViewModel`: GPS 현재 위치 → Google Places API `SearchNearby` 호출
+  - 동물병원 목록 (이름, 주소, 영업 여부, 평점) 표시
+  - 위치 권한 요청 / 로딩 / 오류 상태 처리
+- Google Maps Compose + FusedLocationProvider + Places SDK 연동
+
+---
+
+### 알람 / 백그라운드 스케줄러
+
+#### AlarmManager 기반 정확 알람
+- `MedicationAlarmScheduler`: 투약 알람 예약 (`setExactAndAllowWhileIdle`) / 취소
+- `AlarmReceiver`: BroadcastReceiver — 알람 수신 후 `NotificationHelper`로 푸시 알림 발송
+  - `ACTION_MEDICATION` 액션으로 투약 알림 처리
+  - 매일 반복 알람의 경우 다음 날 동일 시각 재예약
+
+#### WorkManager 기반 리마인더
+- `WorkManagerScheduler`: 투약·접종 리마인더 워커 등록 (지연 실행)
+- `MedicationReminderWorker`: 활성 투약 중 미복약 항목 확인 → 알림 발송
+- `VaccinationReminderWorker`: D-7 이내 접종 예정 항목 확인 → 알림 발송
+
+#### `NotificationHelper`
+- 투약 알림 채널 (`medication_alarm`) / 리마인더 채널 (`reminder`) 생성
+- Android 13+ 알림 권한 요청 흐름 포함
+
+---
+
+### 유틸리티
+
+- `DateVisualTransformation`: 날짜 입력 자동 포맷 (`YYYYMMDD` → `YYYY-MM-DD`)
+- `TimeVisualTransformation`: 시각 입력 자동 포맷 (`HHmm` → `HH:mm`)
+
+---
+
+### Main / Navigation 업데이트
+
+- `MainDrawerContent` 개편: Medication / Vaccination / Diary / HealthCheck / NearbyVet 화면으로 네비게이션 연결
+- `MainViewModel` / `MainUiState` 업데이트: 드로어 상태 통합
+- `AppNavHost`: 5개 신규 화면 라우트 추가
+- `AndroidManifest.xml`: AlarmReceiver 등록, 정확한 알람 권한(`SCHEDULE_EXACT_ALARM`), 위치 권한 추가
+- `build.gradle.kts` / `libs.versions.toml`: Google Maps Compose, Places SDK, WorkManager 의존성 추가
+
+---
+
 ## 다음 작업 예정
-- Main 화면 구현
 - 고양이 상세/편집 화면
 - 체중 기록 그래프
-- 투약 알람 스케줄러
-- 접종 기록 관리
+- 투약 복약 기록 달력 뷰
+- 일기 상세/편집 화면
