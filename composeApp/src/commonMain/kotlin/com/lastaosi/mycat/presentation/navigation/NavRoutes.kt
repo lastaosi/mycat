@@ -24,4 +24,6 @@ sealed class NavRoutes(val route: String) {
     data object NearbyVet : NavRoutes("nearby_vet")
     data object CatInfo : NavRoutes("cat_info")
     data object DonationCoffee : NavRoutes("donation_coffee")
+    data object CareGuide : NavRoutes("care_guide")
+
 }

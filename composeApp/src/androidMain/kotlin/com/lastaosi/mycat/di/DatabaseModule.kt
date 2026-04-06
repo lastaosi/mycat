@@ -3,6 +3,7 @@ package com.lastaosi.mycat.di
 import com.lastaosi.mycat.data.local.database.DatabaseDriverFactory
 import com.lastaosi.mycat.data.local.database.createDatabase
 import com.lastaosi.mycat.db.MyCatDatabase
+import com.lastaosi.mycat.presentation.careguide.CareGuideViewModel
 import com.lastaosi.mycat.presentation.diary.DiaryViewModel
 import com.lastaosi.mycat.presentation.healthcheck.HealthCheckViewModel
 import com.lastaosi.mycat.presentation.main.MainViewModel
@@ -45,7 +46,8 @@ val databaseModule = module {
     viewModel { VaccinationViewModel(get()) }
     viewModel { MedicationViewModel(androidApplication(),get(), get(), ) }
     viewModel { DiaryViewModel(get(), ) }
-    viewModel { HealthCheckViewModel(get(), get(), get()) }
+    viewModel { HealthCheckViewModel(get()) }
     viewModel { NearbyVetViewModel(androidApplication()) }
+    viewModel { CareGuideViewModel(get()) }
 
 }

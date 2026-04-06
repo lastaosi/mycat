@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.lastaosi.mycat.presentation.careguide.CareGuideScreen
 import com.lastaosi.mycat.presentation.diary.DiaryScreen
 import com.lastaosi.mycat.presentation.healthcheck.HealthCheckScreen
 import com.lastaosi.mycat.presentation.main.MainScreen
@@ -122,6 +123,12 @@ fun AppNavHost(
 
         composable(NavRoutes.NearbyVet.route) {
             NearbyVetScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(NavRoutes.CareGuide.route){
+            CareGuideScreen(
                 onBack = { navController.popBackStack() }
             )
         }

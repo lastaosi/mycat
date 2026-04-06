@@ -24,8 +24,10 @@ import com.lastaosi.mycat.domain.usecase.cat.InsertCatUseCase
 import com.lastaosi.mycat.domain.usecase.MainUseCase
 import com.lastaosi.mycat.domain.usecase.RecognizeBreedUseCase
 import com.lastaosi.mycat.domain.usecase.SearchBreedUseCase
+import com.lastaosi.mycat.domain.usecase.breed.GetAllBreedGuidesUseCase
 import com.lastaosi.mycat.domain.usecase.breed.GetBreedAverageDataUseCase
 import com.lastaosi.mycat.domain.usecase.breed.GetBreedGuideUseCase
+import com.lastaosi.mycat.domain.usecase.careguide.CareGuideUseCase
 import com.lastaosi.mycat.domain.usecase.cat.GetAllCatsUseCase
 import com.lastaosi.mycat.domain.usecase.cat.GetCatByIdUseCase
 import com.lastaosi.mycat.domain.usecase.cat.GetRepresentativeCatUseCase
@@ -35,6 +37,9 @@ import com.lastaosi.mycat.domain.usecase.diary.DeleteDiaryUseCase
 import com.lastaosi.mycat.domain.usecase.diary.DiaryUseCase
 import com.lastaosi.mycat.domain.usecase.diary.GetDiariesUseCase
 import com.lastaosi.mycat.domain.usecase.diary.SaveDiaryUseCase
+import com.lastaosi.mycat.domain.usecase.healthcheck.GetHealthCheckSummaryUseCase
+import com.lastaosi.mycat.domain.usecase.healthcheck.GetHealthChecklistUseCase
+import com.lastaosi.mycat.domain.usecase.healthcheck.HealthCheckUseCase
 import com.lastaosi.mycat.domain.usecase.medication.DeleteMedicationUseCase
 import com.lastaosi.mycat.domain.usecase.medication.GetMedicationsUseCase
 import com.lastaosi.mycat.domain.usecase.medication.MedicationUseCase
@@ -115,7 +120,10 @@ val appModule = module {
 
     // Tip UseCase
     factory { GetRandomTipUseCase(get()) }
-
+    // healthCare UseCase
+    factory { GetHealthCheckSummaryUseCase(get()) }
+    factory { GetHealthChecklistUseCase(get()) }
+    factory { GetAllBreedGuidesUseCase(get()) }
 
     factory {
         WeightUseCase(
@@ -163,7 +171,24 @@ val appModule = module {
             getMedications = get(),
             getDiaries = get(),
             getRandomTip = get(),
-            calculateAgeMonth = get()
+            calculateAgeMonth = get(),
+            getHealthCheckSummary = get()
+        )
+    }
+
+    factory {
+        HealthCheckUseCase(
+            getRepresentativeCat = get(),
+            calculateAgeMonth = get(),
+            getHealthCheckList = get()
+        )
+    }
+
+    factory {
+        CareGuideUseCase(
+            getRepresentativeCat = get(),
+            calculateAgeMonth = get(),
+            getAllBreedGuide = get()
         )
     }
 }

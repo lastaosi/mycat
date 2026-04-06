@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lastaosi.mycat.domain.model.Cat
 import com.lastaosi.mycat.domain.model.Gender
+import com.lastaosi.mycat.domain.model.HealthChecklist
+import com.lastaosi.mycat.domain.model.HealthItemType
 import com.lastaosi.mycat.ui.theme.MyCatColors
 import com.lastaosi.mycat.ui.theme.MyCatTheme
 
@@ -52,7 +54,7 @@ fun MainScrollContent(
         )
 
         // 건강 체크리스트 카드
-        HealthCheckCard()
+        HealthCheckCard(items = uiState.healthCheckItems)
 
         // 최근 체중 카드
         LatestWeightCard(
@@ -167,8 +169,9 @@ private fun CareChip(label: String, value: String) {
 
 // ─── 3. HealthCheckCard ──────────────────────────────────────────────
 @Composable
-private fun HealthCheckCard() {
+private fun HealthCheckCard(items: List<HealthChecklist>) {
     MainCard {
+        // 헤더
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
@@ -185,46 +188,56 @@ private fun HealthCheckCard() {
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        // TODO: DB 연동 후 실제 데이터로 교체
-        listOf(
-            Pair("3차 예방접종", false),
-            Pair("정기 검진", true),
-            Pair("구충제 복용", false)
-        ).forEach { (label, isDone) ->
-            HealthCheckRow(label = label, isDone = isDone)
-            Spacer(modifier = Modifier.height(6.dp))
+        // 아이템 목록 — Row 밖에 있어야 세로 배치됨
+        if (items.isEmpty()) {
+            Text(
+                text = "체크리스트 항목이 없어요",
+                fontSize = 13.sp,
+                color = MyCatColors.TextMuted
+            )
+        } else {
+            items.forEach { item ->
+                HealthCheckRow(item = item)
+                Spacer(modifier = Modifier.height(6.dp))
+            }
         }
     }
 }
 
 @Composable
-private fun HealthCheckRow(label: String, isDone: Boolean) {
+private fun HealthCheckRow(item: HealthChecklist) {
+    val emoji = when (item.itemType) {
+        HealthItemType.VACCINE -> "💉"
+        HealthItemType.CHECK   -> "🏥"
+        HealthItemType.SURGERY -> "✂️"
+    }
+
     Row(
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(18.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(
-                    if (isDone) MyCatColors.Success
-                    else MyCatColors.Border
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isDone) {
-                Text(text = "✓", fontSize = 11.sp, color = MyCatColors.OnPrimary)
-            }
-        }
+        Text(text = emoji, fontSize = 14.sp)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
-            text = label,
+            text = item.title,
             fontSize = 13.sp,
-            color = if (isDone) MyCatColors.TextMuted else MyCatColors.OnBackground,
-            textDecoration = if (isDone)
-                androidx.compose.ui.text.style.TextDecoration.LineThrough
-            else null
+            color = MyCatColors.OnBackground,
+            modifier = Modifier.weight(1f)
         )
+        if (item.isRecommended) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MyCatColors.Primary.copy(alpha = 0.15f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "권장",
+                    fontSize = 10.sp,
+                    color = MyCatColors.Primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
     }
 }
 
