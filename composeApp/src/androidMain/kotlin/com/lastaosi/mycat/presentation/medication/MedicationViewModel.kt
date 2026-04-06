@@ -8,6 +8,7 @@ import com.lastaosi.mycat.domain.model.MedicationAlarm
 import com.lastaosi.mycat.domain.model.MedicationType
 import com.lastaosi.mycat.domain.repository.CatRepository
 import com.lastaosi.mycat.domain.repository.MedicationRepository
+import com.lastaosi.mycat.domain.usecase.medication.MedicationUseCase
 import com.lastaosi.mycat.worker.MedicationAlarmScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,7 @@ import kotlin.time.ExperimentalTime
 
 class MedicationViewModel(
     application: Application,
-    private val catRepository: CatRepository,
+    private val useCase: MedicationUseCase,
     private val medicationRepository: MedicationRepository,
 ) : AndroidViewModel(application) {
 
@@ -30,18 +31,18 @@ class MedicationViewModel(
 
     fun loadData(catId: Long) {
         viewModelScope.launch {
-            val cat = catRepository.getCatById(catId) ?: return@launch
+            val cat = useCase.getCatById(catId) ?: return@launch
             _uiState.update { it.copy(catId = cat.id, catName = cat.name) }
 
             launch {
-                medicationRepository.getActiveMedications(catId)
+                useCase.getMedications.active(catId)
                     .collect { list ->
                         _uiState.update { it.copy(activeMedications = list) }
                     }
             }
 
             launch {
-                medicationRepository.getAllMedications(catId)
+                useCase.getMedications.all(catId)
                     .collect { list ->
                         _uiState.update {
                             it.copy(inactiveMedications = list.filter { m -> !m.isActive })
@@ -51,20 +52,33 @@ class MedicationViewModel(
         }
     }
 
-    fun onFabClick() {
+    private fun onFabClick() {
         _uiState.update { it.copy(showInputDialog = true, editingMedication = null) }
     }
 
-    fun onEditClick(medication: Medication) {
+    private fun onEditClick(medication: Medication) {
         _uiState.update { it.copy(showInputDialog = true, editingMedication = medication) }
     }
 
-    fun onDialogDismiss() {
+    private fun onDialogDismiss() {
         _uiState.update { it.copy(showInputDialog = false, editingMedication = null) }
     }
 
+    fun onAction(action: MedicationAction){
+        when(action){
+            is MedicationAction.FabClick -> onFabClick()
+            is MedicationAction.EditClick -> onEditClick(action.medication)
+            is MedicationAction.DialogDismiss -> onDialogDismiss()
+            is MedicationAction.DeleteClick -> onDelete(action.medicationId)
+            is MedicationAction.ToggleActive -> onToggleActive(action.medication )
+            is MedicationAction.MedicationSave -> onSave(action.name,action.medicationType,action.dosage,action.startDate,action.endDate,action.intervalDays,action.memo,action.alarmTimes)
+        }
+
+
+    }
+
     @OptIn(ExperimentalTime::class)
-    fun onSave(
+    private fun onSave(
         name: String,
         medicationType: MedicationType,
         dosage: String,
@@ -76,7 +90,7 @@ class MedicationViewModel(
     ) {
         viewModelScope.launch {
             // 대표 고양이 이름 (알람 알림용)
-            val cat = catRepository.getCatById(_uiState.value.catId)
+            val cat = useCase.getCatById(_uiState.value.catId)
 
             val editing = _uiState.value.editingMedication
             if (editing != null) {
@@ -164,7 +178,7 @@ class MedicationViewModel(
         }
     }
 
-    fun onDelete(id: Long) {
+    private fun onDelete(id: Long) {
         viewModelScope.launch {
             // 알람 취소 후 삭제
             medicationRepository.getAlarmsByMedication(id)
@@ -199,7 +213,7 @@ class MedicationViewModel(
                     }
             } else {
                 // 현재 비활성 → 활성으로 변경 → 알람 재등록
-                val cat = catRepository.getCatById(_uiState.value.catId)
+                val cat = useCase.getCatById(_uiState.value.catId)
                 medicationRepository.getAlarmsByMedication(medication.id)
                     .first()
                     .filter { it.isEnabled }

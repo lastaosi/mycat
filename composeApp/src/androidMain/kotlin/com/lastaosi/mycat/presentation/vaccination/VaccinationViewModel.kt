@@ -5,6 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.lastaosi.mycat.domain.model.VaccinationRecord
 import com.lastaosi.mycat.domain.repository.CatRepository
 import com.lastaosi.mycat.domain.repository.VaccinationRecordRepository
+import com.lastaosi.mycat.domain.usecase.cat.GetCatByIdUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.DeleteVaccinationUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.GetVaccinationsUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.SaveVaccinationUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.VaccinationUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -14,8 +19,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 
 class VaccinationViewModel(
-    private val catRepository: CatRepository,
-    private val vaccinationRecordRepository: VaccinationRecordRepository
+    private val useCase: VaccinationUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VaccinationUiState())
@@ -23,10 +27,10 @@ class VaccinationViewModel(
 
     fun loadData(catId: Long) {
         viewModelScope.launch {
-            val cat = catRepository.getCatById(catId) ?: return@launch
+            val cat = useCase.getCatById(catId) ?: return@launch
             _uiState.update { it.copy(catId = cat.id, catName = cat.name) }
 
-            vaccinationRecordRepository.getVaccinationsByCat(catId)
+            useCase.getVaccinations(catId)
                 .collect { records ->
                     _uiState.update {
                         it.copy(
@@ -37,19 +41,31 @@ class VaccinationViewModel(
         }
     }
 
-    fun onFabClick() {
+    private fun onFabClick() {
         _uiState.update { it.copy(showInputDialog = true, editingRecord = null) }
     }
 
-    fun onEditClick(record: VaccinationRecord) {
+    private fun onEditClick(record: VaccinationRecord) {
         _uiState.update { it.copy(showInputDialog = true, editingRecord = record) }
     }
 
-    fun onDialogDismiss() {
+    private fun onDialogDismiss() {
         _uiState.update { it.copy(showInputDialog = false, editingRecord = null) }
     }
 
-    fun onSave(
+    fun onAction(action: VaccinationAction){
+        when(action){
+            is VaccinationAction.FabClick -> onFabClick()
+            is VaccinationAction.EditClick -> onEditClick(action.record)
+            is VaccinationAction.DialogDismiss -> onDialogDismiss()
+            is VaccinationAction.DeleteClick -> onDelete(action.recordId)
+            is VaccinationAction.VaccinationSave -> onSave(action.title,action.vaccinatedAt,
+                action.nextDueAt,action.memo,action.isNotificationEnabled)
+        }
+
+    }
+
+    private fun onSave(
         title: String,
         vaccinatedAt: Long,
         nextDueAt: Long?,
@@ -60,7 +76,7 @@ class VaccinationViewModel(
             val editing = _uiState.value.editingRecord
             if (editing != null) {
                 // 수정
-                vaccinationRecordRepository.update(
+                useCase.saveVaccination(
                     editing.copy(
                         title = title,
                         vaccinatedAt = vaccinatedAt,
@@ -71,7 +87,7 @@ class VaccinationViewModel(
                 )
             } else {
                 // 신규
-                vaccinationRecordRepository.insert(
+                useCase.saveVaccination(
                     VaccinationRecord(
                         catId = _uiState.value.catId,
                         title = title,
@@ -86,9 +102,9 @@ class VaccinationViewModel(
         }
     }
 
-    fun onDelete(id: Long) {
+    private fun onDelete(id: Long) {
         viewModelScope.launch {
-            vaccinationRecordRepository.delete(id)
+            useCase.deleteVaccination(id)
         }
     }
 }

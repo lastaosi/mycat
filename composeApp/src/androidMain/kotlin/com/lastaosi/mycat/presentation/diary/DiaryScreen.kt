@@ -1,6 +1,5 @@
 package com.lastaosi.mycat.presentation.diary
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -35,6 +34,7 @@ import com.lastaosi.mycat.domain.model.CatDiary
 import com.lastaosi.mycat.domain.model.DiaryMood
 import com.lastaosi.mycat.ui.theme.MyCatColors
 import com.lastaosi.mycat.ui.theme.MyCatTheme
+import com.lastaosi.mycat.util.DatePickerField
 import com.lastaosi.mycat.util.saveImageToInternalStorage
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
@@ -59,11 +59,7 @@ fun DiaryScreen(
     DiaryContent(
         uiState = uiState,
         onBack = onBack,
-        onFabClick = viewModel::onFabClick,
-        onEditClick = viewModel::onEditClick,
-        onDelete = viewModel::onDelete,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onSave = viewModel::onSave
+        onAction=  viewModel::onAction
     )
 }
 
@@ -73,11 +69,7 @@ fun DiaryScreen(
 fun DiaryContent(
     uiState: DiaryUiState,
     onBack: () -> Unit,
-    onFabClick: () -> Unit,
-    onEditClick: (CatDiary) -> Unit,
-    onDelete: (Long) -> Unit,
-    onDialogDismiss: () -> Unit,
-    onSave: (String, String, DiaryMood?, String?, Long) -> Unit
+    onAction: (DiaryAction) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -113,7 +105,7 @@ fun DiaryContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onFabClick,
+                onClick = { onAction(DiaryAction.FabClick) },
                 containerColor = MyCatColors.Primary,
                 contentColor = MyCatColors.OnPrimary
             ) {
@@ -161,8 +153,12 @@ fun DiaryContent(
                 ) { diary ->
                     DiaryItem(
                         diary = diary,
-                        onEditClick = { onEditClick(diary) },
-                        onDeleteClick = { onDelete(diary.id) }
+                        onEditClick = {
+                            onAction(DiaryAction.EditClick(diary))
+                            },
+                        onDeleteClick = {
+                            DiaryAction.DeleteClick(diary.id)
+                        }
                     )
                 }
             }
@@ -172,8 +168,9 @@ fun DiaryContent(
     if (uiState.showInputDialog) {
         DiaryInputDialog(
             editingDiary = uiState.editingDiary,
-            onDismiss = onDialogDismiss,
-            onSave = onSave
+            onDismiss = { onAction(DiaryAction.DialogDismiss(uiState.editingDiary?.id ?: -1)) },
+            onSave = {title, content, selectedMood, photoPath, dateMillis ->
+                onAction(DiaryAction.DiarySave(title, content, selectedMood, photoPath, dateMillis))}
         )
     }
 }
@@ -311,9 +308,9 @@ private fun DiaryInputDialog(
     var content by remember { mutableStateOf(editingDiary?.content ?: "") }
     var selectedMood by remember { mutableStateOf(editingDiary?.mood) }
     var photoPath by remember { mutableStateOf(editingDiary?.photoPath) }
-    var dateInput by remember { mutableStateOf(
-        editingDiary?.let { formatDateToDigits(it.createdAt) }
-            ?: formatDateToDigits(Clock.System.now().toEpochMilliseconds())
+    // 변경
+    var dateMillis by remember { mutableStateOf<Long?>(
+        editingDiary?.createdAt ?: Clock.System.now().toEpochMilliseconds()
     )}
     var isContentError by remember { mutableStateOf(false) }
     var isDateError by remember { mutableStateOf(false) }
@@ -345,24 +342,15 @@ private fun DiaryInputDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // 날짜 선택
-                OutlinedTextField(
-                    value = dateInput,
-                    onValueChange = {
-                        dateInput = it.filter { c -> c.isDigit() }.take(8)
+                DatePickerField(
+                    value = dateMillis,
+                    onDateSelected = {
+                        dateMillis = it
                         isDateError = false
                     },
-                    label = { Text("날짜 *") },
-                    placeholder = { Text("20260401") },
+                    label = "날짜 *",
                     isError = isDateError,
-                    supportingText = if (isDateError) {
-                        { Text("날짜 형식을 확인해주세요") }
-                    } else null,
-                    visualTransformation = com.lastaosi.mycat.util.DateVisualTransformation(),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    errorMessage = "날짜를 선택해주세요"
                 )
 
                 // 제목 (선택)
@@ -469,9 +457,8 @@ private fun DiaryInputDialog(
             Button(
                 onClick = {
                     if (content.isBlank()) { isContentError = true; return@Button }
-                    val dateMillis = parseDate(dateInput)
                     if (dateMillis == null) { isDateError = true; return@Button }
-                    onSave(title, content, selectedMood, photoPath, dateMillis)
+                    onSave(title, content, selectedMood, photoPath, dateMillis!!)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MyCatColors.Primary)
             ) {
@@ -552,11 +539,7 @@ private fun DiaryContentPreview() {
                 )
             ),
             onBack = {},
-            onFabClick = {},
-            onEditClick = {},
-            onDelete = {},
-            onDialogDismiss = {},
-            onSave = { _, _, _, _, _ -> }
+            onAction = {}
         )
     }
 }

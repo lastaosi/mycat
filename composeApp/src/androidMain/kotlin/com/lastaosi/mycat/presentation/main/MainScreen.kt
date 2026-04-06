@@ -3,6 +3,7 @@ package com.lastaosi.mycat.presentation.main
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -24,33 +25,33 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     MainContent(
         uiState = uiState,
-        onMenuClick = viewModel::onMenuClick,
-        onDrawerItemClick = viewModel::onDrawerItemClick,
-        onRefreshTip = viewModel::refreshTip,
-        onCatSelected = viewModel::onCatSelected,  // 추가
-        onAddCatClick = {                           // 추가
-            navController.navigate(NavRoutes.ProfileRegister.route)
-        },
-
-        onNavigate = { item ->
-            val catId = uiState.cat?.id ?: return@MainContent
-            when (item) {
-                DrawerItem.WEIGHT      -> navController.navigate(NavRoutes.WeightGraph.createRoute(catId))
-                DrawerItem.VACCINATION -> navController.navigate(NavRoutes.Vaccination.createRoute(catId))
-                DrawerItem.DIARY -> navController.navigate(NavRoutes.Diary.createRoute(catId))
-                DrawerItem.MEDICATION -> navController.navigate(NavRoutes.Medication.createRoute(catId))
-                DrawerItem.VET_MAP     -> navController.navigate(NavRoutes.NearbyVet.route)
-                DrawerItem.HEALTH_CHECK -> navController.navigate(NavRoutes.CatHealth.route)
-                DrawerItem.PROFILE_EDIT -> {
-                    uiState.cat?.id?.let {
-                        navController.navigate(NavRoutes.ProfileEdit.createRoute(it))
+        onAction = { action ->
+            when (action) {
+                // Navigation 관련은 Screen에서 처리
+                is MainAction.Navigate -> {
+                    val catId = uiState.cat?.id ?: return@MainContent
+                    when (action.item) {
+                        DrawerItem.WEIGHT      -> navController.navigate(NavRoutes.WeightGraph.createRoute(catId))
+                        DrawerItem.VACCINATION -> navController.navigate(NavRoutes.Vaccination.createRoute(catId))
+                        DrawerItem.DIARY       -> navController.navigate(NavRoutes.Diary.createRoute(catId))
+                        DrawerItem.MEDICATION  -> navController.navigate(NavRoutes.Medication.createRoute(catId))
+                        DrawerItem.VET_MAP     -> navController.navigate(NavRoutes.NearbyVet.route)
+                        DrawerItem.HEALTH_CHECK -> navController.navigate(NavRoutes.CatHealth.route)
+                        DrawerItem.PROFILE_EDIT -> {
+                            uiState.cat?.id?.let {
+                                navController.navigate(NavRoutes.ProfileEdit.createRoute(it))
+                            }
+                        }
+                        else -> viewModel.onAction(action)
                     }
                 }
-                DrawerItem.VET_MAP -> navController.navigate(NavRoutes.NearbyVet.route)
-                else -> viewModel.onDrawerItemClick(item)
+                is MainAction.AddCatClick -> {
+                    navController.navigate(NavRoutes.ProfileRegister.route)
+                }
+                // 나머지는 ViewModel로 위임
+                else -> viewModel.onAction(action)
             }
-        },
-
+        }
     )
 }
 
@@ -58,12 +59,7 @@ fun MainScreen(
 @Composable
 fun MainContent(
     uiState: MainUiState,
-    onMenuClick: () -> Unit,
-    onDrawerItemClick: (DrawerItem) -> Unit,
-    onRefreshTip: () -> Unit,
-    onNavigate: (DrawerItem) -> Unit, // 추가
-    onCatSelected: (Long) -> Unit,      // 추가
-    onAddCatClick: () -> Unit
+    onAction: (MainAction) -> Unit  // 파라미터 1개로 통일
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -73,15 +69,12 @@ fun MainContent(
         drawerContent = {
             MainDrawerContent(
                 cat = uiState.cat,
-                selectedItem = uiState.selectedDrawerItem,
-                onItemClick = { item ->
-                    scope.launch { drawerState.close() }
-                    onNavigate(item)  // 변경
-                }
-                ,
                 allCats = uiState.allCats,
-                onCatSelected = onCatSelected,
-                onAddCatClick = onAddCatClick
+                selectedItem = uiState.selectedDrawerItem,
+                onAction = { action ->
+                    scope.launch { drawerState.close() }
+                    onAction(action)
+                }
             )
         },
         scrimColor = MyCatColors.OnBackground.copy(alpha = 0.3f)
@@ -92,7 +85,7 @@ fun MainContent(
                     catName = uiState.cat?.name,
                     onMenuClick = {
                         scope.launch { drawerState.open() }
-                        onMenuClick()
+                        onAction(MainAction.MenuClick)
                     }
                 )
             },
@@ -100,12 +93,14 @@ fun MainContent(
         ) { innerPadding ->
             MainScrollContent(
                 uiState = uiState,
-                onRefreshTip = onRefreshTip,
-                modifier = androidx.compose.ui.Modifier.padding(innerPadding)
+                onAction = onAction,
+                modifier = Modifier.padding(innerPadding)
             )
         }
     }
 }
+
+
 
 // ─── 3. Preview ─────────────────────────────────────────────────────
 @Preview(showBackground = true)
@@ -144,12 +139,7 @@ private fun MainContentPreview() {
                 ),
             ),
 
-            onMenuClick = {},
-            onDrawerItemClick = {},
-            onRefreshTip = {},
-            onCatSelected = {},
-            onAddCatClick = {},
-            onNavigate = {}
+            onAction = {}
 
         )
     }
@@ -161,12 +151,7 @@ private fun MainContentNoCatPreview() {
     MyCatTheme {
         MainContent(
             uiState = MainUiState(),
-            onMenuClick = {},
-            onDrawerItemClick = {},
-            onRefreshTip = {},
-            onCatSelected = {},
-            onAddCatClick = {},
-            onNavigate = {}
+            onAction = {}
         )
     }
 }

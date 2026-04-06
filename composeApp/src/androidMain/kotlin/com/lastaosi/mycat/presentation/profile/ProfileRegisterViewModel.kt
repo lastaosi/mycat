@@ -8,7 +8,7 @@ import com.lastaosi.mycat.domain.model.Cat
 import com.lastaosi.mycat.domain.model.Gender
 import com.lastaosi.mycat.domain.repository.BreedRepository
 import com.lastaosi.mycat.domain.repository.CatRepository
-import com.lastaosi.mycat.domain.usecase.InsertCatUseCase
+import com.lastaosi.mycat.domain.usecase.cat.InsertCatUseCase
 import com.lastaosi.mycat.domain.usecase.RecognizeBreedUseCase
 import com.lastaosi.mycat.domain.usecase.SearchBreedUseCase
 import com.lastaosi.mycat.util.L
@@ -216,6 +216,7 @@ class ProfileRegisterViewModel(
                     )
                 } else {
                     // 추가 모드
+                    val count = catRepository.getCount()
                     insertCatUseCase(
                         Cat(
                             name = state.name,
@@ -229,7 +230,7 @@ class ProfileRegisterViewModel(
                             heightCm = null,
                             photoPath = state.photoPath,
                             isNeutered = state.isNeutered,
-                            isRepresentative = false,  // 추가 시 대표 아님
+                            isRepresentative = count == 0L,  // 추가 시 대표 아님
                             memo = state.memo.ifBlank { null },
                             createdAt = Clock.System.now().toEpochMilliseconds()
                         )

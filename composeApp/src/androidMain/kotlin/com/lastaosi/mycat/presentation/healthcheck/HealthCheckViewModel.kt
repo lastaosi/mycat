@@ -24,6 +24,9 @@ class HealthCheckViewModel(
         viewModelScope.launch {
             val cat = catRepository.getRepresentativeCat() ?: return@launch
             val ageMonth = calculateAgeMonthUseCase(cat.birthDate)
+
+            android.util.Log.d("HealthCheck", "birthDate: ${cat.birthDate}")
+            android.util.Log.d("HealthCheck", "ageMonth: $ageMonth")
             _uiState.update { it.copy(catName = cat.name, ageMonth = ageMonth, isLoading = true) }
 
             healthChecklistRepository.getAllChecklist()

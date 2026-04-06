@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.lastaosi.mycat.domain.model.VaccinationRecord
 import com.lastaosi.mycat.ui.theme.MyCatColors
 import com.lastaosi.mycat.ui.theme.MyCatTheme
+import com.lastaosi.mycat.util.DatePickerField
 import com.lastaosi.mycat.util.DateVisualTransformation
 import com.lastaosi.mycat.util.L
 import kotlinx.datetime.Instant
@@ -50,11 +51,7 @@ fun VaccinationScreen(
     VaccinationContent(
         uiState = uiState,
         onBack = onBack,
-        onFabClick = viewModel::onFabClick,
-        onEditClick = viewModel::onEditClick,
-        onDelete = viewModel::onDelete,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onSave = viewModel::onSave
+        onAction = viewModel::onAction
     )
 }
 
@@ -64,11 +61,7 @@ fun VaccinationScreen(
 fun VaccinationContent(
     uiState: VaccinationUiState,
     onBack: () -> Unit,
-    onFabClick: () -> Unit,
-    onEditClick: (VaccinationRecord) -> Unit,
-    onDelete: (Long) -> Unit,
-    onDialogDismiss: () -> Unit,
-    onSave: (String, Long, Long?, String, Boolean) -> Unit
+    onAction: (VaccinationAction) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -104,7 +97,7 @@ fun VaccinationContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onFabClick,
+                onClick = { onAction(VaccinationAction.FabClick) },
                 containerColor = MyCatColors.Primary,
                 contentColor = MyCatColors.OnPrimary
             ) {
@@ -153,8 +146,8 @@ fun VaccinationContent(
                 ) { record ->
                     VaccinationRecordItem(
                         record = record,
-                        onEditClick = { onEditClick(record) },
-                        onDeleteClick = { onDelete(record.id) }
+                        onEditClick = { onAction(VaccinationAction.EditClick(record))},
+                        onDeleteClick = { onAction(VaccinationAction.DeleteClick(record.id))}
                     )
                 }
             }
@@ -165,8 +158,9 @@ fun VaccinationContent(
     if (uiState.showInputDialog) {
         VaccinationInputDialog(
             editingRecord = uiState.editingRecord,
-            onDismiss = onDialogDismiss,
-            onSave = onSave
+            onDismiss = { onAction(VaccinationAction.DialogDismiss)},
+            onSave = {title, vaccinatedMillis, nextDueMillis, memo, isNotificationEnabled ->
+                onAction(VaccinationAction.VaccinationSave(title, vaccinatedMillis, nextDueMillis, memo, isNotificationEnabled)) }
         )
     }
 }
@@ -337,12 +331,8 @@ private fun VaccinationInputDialog(
 ) {
     var title by remember { mutableStateOf(editingRecord?.title ?: "") }
     // editingRecord 초기값 수정
-    var vaccinatedAt by remember { mutableStateOf(
-        editingRecord?.let { formatDateToDigits(it.vaccinatedAt) } ?: ""
-    )}
-    var nextDueAt by remember { mutableStateOf(
-        editingRecord?.nextDueAt?.let { formatDateToDigits(it) } ?: ""
-    )}
+    var vaccinatedAt by remember { mutableStateOf<Long?>(editingRecord?.vaccinatedAt) }
+    var nextDueAt by remember { mutableStateOf<Long?>(editingRecord?.nextDueAt) }
     var memo by remember { mutableStateOf(editingRecord?.memo ?: "") }
     var isNotificationEnabled by remember { mutableStateOf(
         editingRecord?.isNotificationEnabled ?: true
@@ -374,40 +364,23 @@ private fun VaccinationInputDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                // 접종일
-                OutlinedTextField(
+                // 접종일 — DatePickerField 로 교체
+                DatePickerField(
                     value = vaccinatedAt,
-                    onValueChange = {
-                        // 숫자만 허용, 최대 8자리
-                        val digits = it.filter { c -> c.isDigit() }.take(8)
-                        vaccinatedAt = digits
+                    onDateSelected = {
+                        vaccinatedAt = it
                         isDateError = false
                     },
-                    label = { Text("접종일 *") },
-                    placeholder = { Text("20260401") },
+                    label = "접종일 *",
                     isError = isDateError,
-                    supportingText = if (isDateError) {
-                        { Text("날짜 형식을 확인해주세요") }
-                    } else null,
-                    visualTransformation = com.lastaosi.mycat.util.DateVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    errorMessage = "접종일을 선택해주세요"
                 )
 
-// 다음 예정일
-                OutlinedTextField(
+                // 다음 예정일 — DatePickerField 로 교체
+                DatePickerField(
                     value = nextDueAt,
-                    onValueChange = {
-                        val digits = it.filter { c -> c.isDigit() }.take(8)
-                        nextDueAt = digits
-                    },
-                    label = { Text("다음 예정일 (선택)") },
-                    placeholder = { Text("20260701") },
-                    visualTransformation = DateVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    onDateSelected = { nextDueAt = it },
+                    label = "다음 예정일 (선택)"
                 )
 
                 // 메모
@@ -446,10 +419,8 @@ private fun VaccinationInputDialog(
                 onClick = {
                     // 유효성 검사
                     if (title.isBlank()) { isTitleError = true; return@Button }
-                    val vaccinatedMillis = parseDate(vaccinatedAt)
-                    if (vaccinatedMillis == null) { isDateError = true; return@Button }
-                    val nextDueMillis = if (nextDueAt.isBlank()) null else parseDate(nextDueAt)
-                    onSave(title, vaccinatedMillis, nextDueMillis, memo, isNotificationEnabled)
+                    if (vaccinatedAt == null) { isDateError = true; return@Button }
+                    onSave(title, vaccinatedAt!!, nextDueAt, memo, isNotificationEnabled)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MyCatColors.Primary)
             ) {
@@ -536,11 +507,7 @@ private fun VaccinationContentPreview() {
                 )
             ),
             onBack = {},
-            onFabClick = {},
-            onEditClick = {},
-            onDelete = {},
-            onDialogDismiss = {},
-            onSave = { _, _, _, _, _ -> }
+            onAction = {}
         )
     }
 }

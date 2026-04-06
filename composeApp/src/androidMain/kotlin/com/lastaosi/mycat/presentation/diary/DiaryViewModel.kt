@@ -4,8 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lastaosi.mycat.domain.model.CatDiary
 import com.lastaosi.mycat.domain.model.DiaryMood
-import com.lastaosi.mycat.domain.repository.CatDiaryRepository
-import com.lastaosi.mycat.domain.repository.CatRepository
+import com.lastaosi.mycat.domain.usecase.diary.DiaryUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -14,8 +13,7 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 class DiaryViewModel(
-    private val catRepository: CatRepository,
-    private val catDiaryRepository: CatDiaryRepository
+    private val useCase: DiaryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DiaryUiState())
@@ -23,10 +21,10 @@ class DiaryViewModel(
 
     fun loadData(catId: Long) {
         viewModelScope.launch {
-            val cat = catRepository.getCatById(catId) ?: return@launch
+            val cat = useCase.getCatById(catId) ?: return@launch
             _uiState.update { it.copy(catId = cat.id, catName = cat.name) }
 
-            catDiaryRepository.getDiariesByCat(catId)
+            useCase.getDiaries(catId)
                 .collect { diaries ->
                     _uiState.update {
                         it.copy(diaries = diaries.sortedByDescending { d -> d.createdAt })
@@ -47,6 +45,16 @@ class DiaryViewModel(
         _uiState.update { it.copy(showInputDialog = false, editingDiary = null) }
     }
 
+    fun onAction(action: DiaryAction){
+        when(action){
+            is DiaryAction.FabClick -> onFabClick()
+            is DiaryAction.EditClick -> onEditClick(action.diary)
+            is DiaryAction.DialogDismiss -> onDialogDismiss()
+            is DiaryAction.DeleteClick -> onDelete(action.diaryId)
+            is DiaryAction.DiarySave -> onSave(action.title,action.content,action.mood,action.photoPath,action.dateMillis)
+        }
+    }
+
     @OptIn(ExperimentalTime::class)
     fun onSave(
         title: String,
@@ -59,7 +67,7 @@ class DiaryViewModel(
             val editing = _uiState.value.editingDiary
             val now = Clock.System.now().toEpochMilliseconds()
             if (editing != null) {
-                catDiaryRepository.update(
+                useCase.saveDiary(
                     editing.copy(
                         title = title.ifBlank { null },
                         content = content,
@@ -70,7 +78,7 @@ class DiaryViewModel(
                     )
                 )
             } else {
-                catDiaryRepository.insert(
+                useCase.saveDiary(
                     CatDiary(
                         catId = _uiState.value.catId,
                         title = title.ifBlank { null },
@@ -88,7 +96,7 @@ class DiaryViewModel(
 
     fun onDelete(id: Long) {
         viewModelScope.launch {
-            catDiaryRepository.delete(id)
+            useCase.deleteDiary(id)
         }
     }
 }

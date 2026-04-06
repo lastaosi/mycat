@@ -40,12 +40,11 @@ val databaseModule = module {
 
     viewModel { SplashViewModel(get()) }
     viewModel { ProfileRegisterViewModel(get(), get(), get(), get()) }
-    viewModel { MainViewModel(get(), get(), get(), get(), get(),
-        get(), get(), get()) }
-    viewModel { WeightViewModel(get(), get(), get()) }
-    viewModel { VaccinationViewModel(get(),get()) }
+    viewModel { MainViewModel(get()) }
+    viewModel { WeightViewModel(get()) }
+    viewModel { VaccinationViewModel(get()) }
     viewModel { MedicationViewModel(androidApplication(),get(), get(), ) }
-    viewModel { DiaryViewModel(get(), get()) }
+    viewModel { DiaryViewModel(get(), ) }
     viewModel { HealthCheckViewModel(get(), get(), get()) }
     viewModel { NearbyVetViewModel(androidApplication()) }
 

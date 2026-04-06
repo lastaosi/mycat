@@ -1,4 +1,4 @@
-package com.lastaosi.mycat.domain.usecase
+package com.lastaosi.mycat.domain.usecase.cat
 
 import com.lastaosi.mycat.domain.model.Cat
 import com.lastaosi.mycat.domain.repository.CatRepository

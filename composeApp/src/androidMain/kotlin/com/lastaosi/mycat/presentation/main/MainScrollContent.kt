@@ -24,7 +24,7 @@ import com.lastaosi.mycat.ui.theme.MyCatTheme
 @Composable
 fun MainScrollContent(
     uiState: MainUiState,
-    onRefreshTip: () -> Unit,
+    onAction: (MainAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -71,14 +71,11 @@ fun MainScrollContent(
             RecentDiaryCard(diaries = uiState.recentDiaries)
         }
 
-// 전광판 팁 배너
-        uiState.randomTip?.let { tip ->
-            TipBannerCard(tip = tip, onTap = onRefreshTip)
-        }
+
         // 전광판 팁 배너
         uiState.randomTip?.let { tip ->
             TipBannerCard(tip = tip,
-                onTap = onRefreshTip
+                onTap = { onAction(MainAction.RefreshTip) }
             )
         }
 
@@ -306,7 +303,7 @@ private fun TipBannerCard(tip: String,onTap: () -> Unit = {}) {
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(MyCatColors.Primary)
-            .clickable{onTap()}
+            .clickable { onTap() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -564,7 +561,7 @@ private fun MainScrollContentPreview() {
                     DiaryPreview(2L, "병원 다녀온 날", "정기검진 결과 건강하다고 해서 다행이었다.", "😊", "2026.03.28")
                 )
             ),
-            onRefreshTip = {}
+            onAction = {}
         )
     }
 }
@@ -575,6 +572,6 @@ private fun MainScrollContentPreview() {
 private fun MainScrollContentNoCatPreview() {
     MyCatTheme {
         MainScrollContent(uiState = MainUiState(),
-            onRefreshTip = {},   )
+            onAction = {}  )
     }
 }

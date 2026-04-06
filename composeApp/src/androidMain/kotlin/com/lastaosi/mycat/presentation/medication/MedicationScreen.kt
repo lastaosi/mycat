@@ -24,8 +24,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lastaosi.mycat.domain.model.Medication
 import com.lastaosi.mycat.domain.model.MedicationType
+import com.lastaosi.mycat.presentation.weight.WeightAction
 import com.lastaosi.mycat.ui.theme.MyCatColors
 import com.lastaosi.mycat.ui.theme.MyCatTheme
+import com.lastaosi.mycat.util.DatePickerField
 import com.lastaosi.mycat.util.DateVisualTransformation
 import com.lastaosi.mycat.util.L
 import com.lastaosi.mycat.util.TimeVisualTransformation
@@ -50,12 +52,7 @@ fun MedicationScreen(
     MedicationContent(
         uiState = uiState,
         onBack = onBack,
-        onFabClick = viewModel::onFabClick,
-        onEditClick = viewModel::onEditClick,
-        onDelete = viewModel::onDelete,
-        onToggleActive = viewModel::onToggleActive,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onSave = viewModel::onSave
+        onAction = viewModel::onAction
     )
 }
 
@@ -65,12 +62,7 @@ fun MedicationScreen(
 fun MedicationContent(
     uiState: MedicationUiState,
     onBack: () -> Unit,
-    onFabClick: () -> Unit,
-    onEditClick: (Medication) -> Unit,
-    onDelete: (Long) -> Unit,
-    onToggleActive: (Medication) -> Unit,
-    onDialogDismiss: () -> Unit,
-    onSave: (String, MedicationType, String, Long, Long?, Int?, String, List<String> ) -> Unit
+    onAction: (MedicationAction) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -106,7 +98,7 @@ fun MedicationContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onFabClick,
+                onClick = { onAction(MedicationAction.FabClick)},
                 containerColor = MyCatColors.Primary,
                 contentColor = MyCatColors.OnPrimary
             ) {
@@ -159,9 +151,14 @@ fun MedicationContent(
                     ) { medication ->
                         MedicationItem(
                             medication = medication,
-                            onEditClick = { onEditClick(medication) },
-                            onDeleteClick = { onDelete(medication.id) },
-                            onToggleActive = { onToggleActive(medication) }
+                            onEditClick = {
+                                onAction(MedicationAction.EditClick(medication))},
+                            onDeleteClick = {
+                                onAction(MedicationAction.DeleteClick(medication.id))
+                                            },
+                            onToggleActive = {
+                                onAction(MedicationAction.ToggleActive(medication))
+                                }
                         )
                     }
                 }
@@ -178,9 +175,14 @@ fun MedicationContent(
                     ) { medication ->
                         MedicationItem(
                             medication = medication,
-                            onEditClick = { onEditClick(medication) },
-                            onDeleteClick = { onDelete(medication.id) },
-                            onToggleActive = { onToggleActive(medication) }
+                            onEditClick = {
+                                onAction(MedicationAction.EditClick(medication))},
+                            onDeleteClick = {
+                                onAction(MedicationAction.DeleteClick(medication.id))
+                            },
+                            onToggleActive = {
+                                onAction(MedicationAction.ToggleActive(medication))
+                            }
                         )
                     }
                 }
@@ -191,8 +193,21 @@ fun MedicationContent(
     if (uiState.showInputDialog) {
         MedicationInputDialog(
             editingMedication = uiState.editingMedication,
-            onDismiss = onDialogDismiss,
-            onSave = onSave
+            onDismiss = {onAction(MedicationAction.DialogDismiss)},
+            onSave = { name, selectedType, dosage, startMillis, endMillis, interval, memo, alarmTimes ->
+                onAction(
+                    MedicationAction.MedicationSave(
+                        name = name,
+                        medicationType = selectedType,
+                        dosage = dosage,
+                        startDate = startMillis,
+                        endDate = endMillis,
+                        intervalDays = interval,
+                        memo = memo,
+                        alarmTimes = alarmTimes
+                    )
+                )
+            }
         )
     }
 }
@@ -419,13 +434,9 @@ private fun MedicationInputDialog(
         editingMedication?.medicationType ?: MedicationType.DAILY
     )}
     var dosage by remember { mutableStateOf(editingMedication?.dosage ?: "") }
-    var startDate by remember { mutableStateOf(
-        editingMedication?.let { formatDateToDigits(it.startDate) } ?: todayDigits  // 오늘 날짜
-    )}
     var alarmInput by remember { mutableStateOf(currentTimeDigits) }
-    var endDate by remember { mutableStateOf(
-        editingMedication?.endDate?.let { formatDateToDigits(it) } ?: ""
-    )}
+    var startDate by remember { mutableStateOf<Long?>(editingMedication?.startDate) }
+    var endDate by remember { mutableStateOf<Long?>(editingMedication?.endDate) }
     var intervalDays by remember { mutableStateOf(
         editingMedication?.intervalDays?.toString() ?: ""
     )}
@@ -501,37 +512,23 @@ private fun MedicationInputDialog(
                 )
 
                 // 시작일
-                OutlinedTextField(
+                DatePickerField(
                     value = startDate,
-                    onValueChange = {
-                        startDate = it.filter { c -> c.isDigit() }.take(8)
+                    onDateSelected = {
+                        startDate = it
                         isStartDateError = false
                     },
-                    label = { Text("시작일 *") },
-                    placeholder = { Text("20260401") },
+                    label = "시작일 *",
                     isError = isStartDateError,
-                    supportingText = if (isStartDateError) {
-                        { Text("날짜 형식을 확인해주세요") }
-                    } else null,
-                    visualTransformation = DateVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    errorMessage = "시작일을 선택해주세요"
                 )
 
-                // 종료일 (ONCE 제외)
+// 종료일 (ONCE 제외)
                 if (selectedType != MedicationType.ONCE) {
-                    OutlinedTextField(
+                    DatePickerField(
                         value = endDate,
-                        onValueChange = {
-                            endDate = it.filter { c -> c.isDigit() }.take(8)
-                        },
-                        label = { Text("종료일 (선택)") },
-                        placeholder = { Text("20260501") },
-                        visualTransformation = DateVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        onDateSelected = { endDate = it },
+                        label = "종료일 (선택)"
                     )
                 }
 
@@ -625,12 +622,12 @@ private fun MedicationInputDialog(
                 onClick = {
                     L.d( "저장 시 alarmTimes: $alarmTimes")
                     if (name.isBlank()) { isNameError = true; return@Button }
-                    val startMillis = parseDate(startDate)
-                    if (startMillis == null) { isStartDateError = true; return@Button }
-                    val endMillis = if (endDate.isBlank()) null else parseDate(endDate)
+                    if (startDate == null) { isStartDateError = true; return@Button }
+
+                    val endMillis = endDate
                     val interval = if (selectedType == MedicationType.INTERVAL)
                         intervalDays.toIntOrNull() else null
-                    onSave(name, selectedType, dosage, startMillis, endMillis, interval, memo,alarmTimes)
+                    onSave(name, selectedType, dosage, startDate!!, endMillis, interval, memo,alarmTimes)
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MyCatColors.Primary)
             ) {
@@ -709,12 +706,7 @@ private fun MedicationContentPreview() {
                 )
             ),
             onBack = {},
-            onFabClick = {},
-            onEditClick = {},
-            onDelete = {},
-            onToggleActive = {},
-            onDialogDismiss = {},
-            onSave = { _, _, _, _, _, _, _,_-> }
+            onAction = {}
         )
     }
 }
