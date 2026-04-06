@@ -228,6 +228,71 @@
 
 ---
 
+---
+
+## 2026-04-06
+
+### Presentation 레이어 — Action 패턴 도입
+
+#### Action sealed class 도입 (각 화면 이벤트 통합)
+- `MainAction` — 메뉴 클릭, 드로어 항목 선택, 고양이 선택, 팁 갱신 등
+- `DiaryAction` — 일기 작성/삭제, 기분 선택, 사진 첨부 등
+- `MedicationAction` — 투약 등록/삭제, 복약 기록, 알람 추가/삭제 등
+- `VaccinationAction` — 접종 완료 처리, 다음 접종일 입력 등
+- `WeightAction` — 체중 입력, 탭 전환 등
+- 각 ViewModel에 `onAction(action)` 단일 진입점 메서드 적용
+- Screen → Content 파라미터를 `onAction: (XxxAction) -> Unit` 1개로 통일
+
+---
+
+### Domain 레이어 — UseCase 패키지 재구조화
+
+#### 서브 패키지 분리 (`domain/usecase/` → 도메인별 하위 패키지)
+| 패키지 | UseCase |
+|--------|---------|
+| `cat/` | `GetAllCatsUseCase`, `GetCatByIdUseCase`, `GetRepresentativeCatUseCase`, `SetRepresentativeCatUseCase`, `UpdateCatUseCase`, `InsertCatUseCase`(이동) |
+| `breed/` | `GetBreedAverageDataUseCase`, `GetBreedGuideUseCase` |
+| `weight/` | `GetWeightHistoryUseCase`, `GetLatestWeightUseCase`, `InsertWeightUseCase` |
+| `medication/` | `GetMedicationsUseCase`, `SaveMedicationUseCase`, `DeleteMedicationUseCase` |
+| `vaccination/` | `GetVaccinationsUseCase`, `GetUpcomingVaccinationsUseCase`, `SaveVaccinationUseCase`, `DeleteVaccinationUseCase` |
+| `diary/` | `GetDiariesUseCase`, `SaveDiaryUseCase`, `DeleteDiaryUseCase` |
+| `tip/` | `GetRandomTipUseCase` |
+
+#### Facade UseCase 추가
+- `MainUseCase` — Main 화면에서 필요한 UseCase 묶음 (대표 고양이, 알람, 투약, 일기, 팁)
+- `WeightUseCase` — 체중 화면 UseCase 묶음
+- `MedicationUseCase` — 투약 화면 UseCase 묶음
+- `DiaryUseCase` — 일기 화면 UseCase 묶음
+- `VaccinationUseCase` — 접종 화면 UseCase 묶음
+
+---
+
+### 유틸리티
+
+#### `DatePickerField` 컴포저블 추가
+- `OutlinedTextField` + `DatePickerDialog` 래퍼
+- 날짜 미선택 시 빈 문자열, 선택 시 `YYYY-MM-DD` 포맷 표시
+- `isError` / `errorMessage` 지원
+
+---
+
+### DI 업데이트
+
+#### `AppModule`
+- 신규 UseCase 전체 Koin `factory` 등록
+- Facade UseCase(`WeightUseCase`, `MedicationUseCase`, `DiaryUseCase`, `VaccinationUseCase`, `MainUseCase`) 등록
+
+#### `DatabaseModule`
+- 변경사항 반영 업데이트
+
+---
+
+### 도메인 모델
+
+- `BreedAvgPoint` — 품종 평균 성장 데이터 포인트 모델 추가
+
+---
+
 ## 다음 작업 예정
 - 고양이 상세/편집 화면
 - 체중 기록 그래프
