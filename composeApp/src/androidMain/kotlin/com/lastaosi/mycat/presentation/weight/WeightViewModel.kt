@@ -2,10 +2,16 @@ package com.lastaosi.mycat.presentation.weight
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.lastaosi.mycat.domain.model.BreedAvgPoint
 import com.lastaosi.mycat.domain.model.WeightRecord
 import com.lastaosi.mycat.domain.repository.BreedRepository
 import com.lastaosi.mycat.domain.repository.CatRepository
 import com.lastaosi.mycat.domain.repository.WeightRecordRepository
+import com.lastaosi.mycat.domain.usecase.breed.GetBreedAverageDataUseCase
+import com.lastaosi.mycat.domain.usecase.cat.GetCatByIdUseCase
+import com.lastaosi.mycat.domain.usecase.weight.GetWeightHistoryUseCase
+import com.lastaosi.mycat.domain.usecase.weight.InsertWeightUseCase
+import com.lastaosi.mycat.domain.usecase.weight.WeightUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -20,25 +26,22 @@ import kotlin.time.ExperimentalTime
  * FAB 클릭 시 입력 다이얼로그를 표시하고, 저장 시 WeightRecord를 DB에 삽입한다.
  */
 class WeightViewModel(
-    private val catRepository: CatRepository,
-    private val weightRecordRepository: WeightRecordRepository,
-    private val breedRepository: BreedRepository
+    private val useCase: WeightUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(WeightUiState())
     val uiState: StateFlow<WeightUiState> = _uiState
 
-    // init 제거 — LaunchedEffect에서 catId 받아서 호출
     fun loadData(catId: Long) {
         viewModelScope.launch {
-            val cat = catRepository.getCatById(catId) ?: return@launch
-            _uiState.update { it.copy(
-                catId = cat.id, catName = cat.name, birthDate = cat.birthDate  // 추가
-            ) }
+            val cat = useCase.getCatById(catId) ?: return@launch
+            _uiState.update {
+                it.copy(catId = cat.id, catName = cat.name, birthDate = cat.birthDate)
+            }
 
             // 체중 기록 Flow 구독
             launch {
-                weightRecordRepository.getWeightHistory(cat.id)
+                useCase.getWeightHistory(cat.id)
                     .collect { records ->
                         val sorted = records.sortedBy { it.recordedAt }
                         _uiState.update {
@@ -53,40 +56,39 @@ class WeightViewModel(
             // 품종 평균 성장 데이터
             cat.breedId?.let { breedId ->
                 launch {
-                    val guides = breedRepository.getAllGuidesByBreed(breedId)
-                    val avgPoints = guides
-                        .map { guide ->
-                            BreedAvgPoint(
-                                month = guide.month,
-                                weightMinG = guide.weightMinG,
-                                weightMaxG = guide.weightMaxG,
-                                avgWeightG = (guide.weightMinG + guide.weightMaxG) / 2
-                            )
-                        }
-                        .sortedBy { it.month }
+                    val avgPoints = useCase.getBreedAverageData(breedId)
                     _uiState.update { it.copy(breedAverageData = avgPoints) }
                 }
             }
         }
     }
 
-    fun onTabSelected(tab: WeightTab) {
+    fun onAction(action: WeightAction) {
+        when (action) {
+            is WeightAction.TabSelected -> onTabSelected(action.tab)
+            is WeightAction.FabClick -> onFabClick()
+            is WeightAction.DialogDismiss -> onDialogDismiss()
+            is WeightAction.WeightSave -> onWeightSave(action.weightKg, action.memo)
+        }
+    }
+
+    private fun onTabSelected(tab: WeightTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    fun onFabClick() {
+    private fun onFabClick() {
         _uiState.update { it.copy(showInputDialog = true) }
     }
 
-    fun onDialogDismiss() {
+    private fun onDialogDismiss() {
         _uiState.update { it.copy(showInputDialog = false) }
     }
 
     @OptIn(ExperimentalTime::class)
-    fun onWeightSave(weightKg: String, memo: String) {
+    private fun onWeightSave(weightKg: String, memo: String) {
         val weightG = weightKg.toDoubleOrNull()?.times(1000)?.toInt() ?: return
         viewModelScope.launch {
-            weightRecordRepository.insert(
+           useCase.insertWeight(
                 WeightRecord(
                     catId = _uiState.value.catId,
                     weightG = weightG,

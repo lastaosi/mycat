@@ -20,9 +20,35 @@ import com.lastaosi.mycat.domain.repository.MedicationRepository
 import com.lastaosi.mycat.domain.repository.WeightRecordRepository
 import com.lastaosi.mycat.domain.repository.VaccinationRecordRepository
 import com.lastaosi.mycat.domain.usecase.CalculateAgeMonthUseCase
-import com.lastaosi.mycat.domain.usecase.InsertCatUseCase
+import com.lastaosi.mycat.domain.usecase.cat.InsertCatUseCase
+import com.lastaosi.mycat.domain.usecase.MainUseCase
 import com.lastaosi.mycat.domain.usecase.RecognizeBreedUseCase
 import com.lastaosi.mycat.domain.usecase.SearchBreedUseCase
+import com.lastaosi.mycat.domain.usecase.breed.GetBreedAverageDataUseCase
+import com.lastaosi.mycat.domain.usecase.breed.GetBreedGuideUseCase
+import com.lastaosi.mycat.domain.usecase.cat.GetAllCatsUseCase
+import com.lastaosi.mycat.domain.usecase.cat.GetCatByIdUseCase
+import com.lastaosi.mycat.domain.usecase.cat.GetRepresentativeCatUseCase
+import com.lastaosi.mycat.domain.usecase.cat.SetRepresentativeCatUseCase
+import com.lastaosi.mycat.domain.usecase.cat.UpdateCatUseCase
+import com.lastaosi.mycat.domain.usecase.diary.DeleteDiaryUseCase
+import com.lastaosi.mycat.domain.usecase.diary.DiaryUseCase
+import com.lastaosi.mycat.domain.usecase.diary.GetDiariesUseCase
+import com.lastaosi.mycat.domain.usecase.diary.SaveDiaryUseCase
+import com.lastaosi.mycat.domain.usecase.medication.DeleteMedicationUseCase
+import com.lastaosi.mycat.domain.usecase.medication.GetMedicationsUseCase
+import com.lastaosi.mycat.domain.usecase.medication.MedicationUseCase
+import com.lastaosi.mycat.domain.usecase.medication.SaveMedicationUseCase
+import com.lastaosi.mycat.domain.usecase.tip.GetRandomTipUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.DeleteVaccinationUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.GetUpcomingVaccinationsUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.GetVaccinationsUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.SaveVaccinationUseCase
+import com.lastaosi.mycat.domain.usecase.vaccination.VaccinationUseCase
+import com.lastaosi.mycat.domain.usecase.weight.GetLatestWeightUseCase
+import com.lastaosi.mycat.domain.usecase.weight.GetWeightHistoryUseCase
+import com.lastaosi.mycat.domain.usecase.weight.InsertWeightUseCase
+import com.lastaosi.mycat.domain.usecase.weight.WeightUseCase
 import org.koin.dsl.module
 
 /**
@@ -42,7 +68,6 @@ val appModule = module {
     single<CatDiaryRepository> { CatDiaryRepositoryImpl(get()) }
     single<VaccinationRecordRepository> { VaccinationRecordRepositoryImpl(get()) }
     single<CatTipRepository> { CatTipRepositoryImpl(get()) }
-    factory { CalculateAgeMonthUseCase() }
     // Remote
     single { createHttpClient() }
     single {
@@ -52,9 +77,93 @@ val appModule = module {
         )
     }
 
-    // UseCase
-    factory { CalculateAgeMonthUseCase() }
+    // Cat UseCase
+    factory { GetAllCatsUseCase(get()) }
+    factory { GetRepresentativeCatUseCase(get()) }
+    factory { SetRepresentativeCatUseCase(get()) }
+    factory { UpdateCatUseCase(get()) }
     factory { InsertCatUseCase(get()) }
     factory { RecognizeBreedUseCase(get(), get()) }
     factory { SearchBreedUseCase(get()) }
+    factory { CalculateAgeMonthUseCase() }
+    factory { GetCatByIdUseCase(get()) }
+
+    // Breed UseCase
+    factory { GetBreedGuideUseCase(get()) }
+    factory { GetBreedAverageDataUseCase(get()) }
+
+    // Weight UseCase
+    factory { GetWeightHistoryUseCase(get()) }
+    factory { InsertWeightUseCase(get()) }
+    factory { GetLatestWeightUseCase(get()) }
+
+    // Vaccination UseCase
+    factory { GetVaccinationsUseCase(get()) }
+    factory { GetUpcomingVaccinationsUseCase(get()) }
+    factory { SaveVaccinationUseCase(get()) }
+    factory { DeleteVaccinationUseCase(get()) }
+
+    // Medication UseCase
+    factory { GetMedicationsUseCase(get()) }
+    factory { SaveMedicationUseCase(get()) }
+    factory { DeleteMedicationUseCase(get()) }
+
+    // Diary UseCase
+    factory { GetDiariesUseCase(get()) }
+    factory { SaveDiaryUseCase(get()) }
+    factory { DeleteDiaryUseCase(get()) }
+
+    // Tip UseCase
+    factory { GetRandomTipUseCase(get()) }
+
+
+    factory {
+        WeightUseCase(
+            getCatById = get(),
+            getWeightHistory = get(),
+            insertWeight = get(),
+            getBreedAverageData = get()
+        )
+    }
+
+    factory {
+        VaccinationUseCase(
+            getCatById = get(),
+            getVaccinations = get(),
+            saveVaccination = get(),
+            deleteVaccination = get()
+        )
+    }
+
+    factory {
+        MedicationUseCase(
+            getCatById = get(),
+            getMedications = get(),
+            saveMedication = get(),
+            deleteMedication = get()
+        )
+    }
+
+    factory {
+        DiaryUseCase(
+            getCatById = get(),
+            getDiaries = get(),
+            saveDiary = get(),
+            deleteDiary = get()
+        )
+    }
+    // MainUseCase 그룹
+    factory {
+        MainUseCase(
+            getAllCats = get(),
+            setRepresentative = get(),
+            getBreedGuide = get(),
+            getLatestWeight = get(),
+            getUpcomingVaccinations = get(),
+            getMedications = get(),
+            getDiaries = get(),
+            getRandomTip = get(),
+            calculateAgeMonth = get()
+        )
+    }
 }

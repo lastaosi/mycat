@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.lastaosi.mycat.domain.model.BreedAvgPoint
 // 기존 2.x import 전부 제거
 // 아래로 교체
 import com.patrykandpatrick.vico.compose.axis.horizontal.rememberBottomAxis
@@ -59,10 +60,7 @@ fun WeightScreen(
     WeightContent(
         uiState = uiState,
         onBack = onBack,
-        onTabSelected = viewModel::onTabSelected,
-        onFabClick = viewModel::onFabClick,
-        onDialogDismiss = viewModel::onDialogDismiss,
-        onWeightSave = viewModel::onWeightSave
+        onAction = viewModel::onAction
     )
 }
 
@@ -72,10 +70,7 @@ fun WeightScreen(
 fun WeightContent(
     uiState: WeightUiState,
     onBack: () -> Unit,
-    onTabSelected: (WeightTab) -> Unit,
-    onFabClick: () -> Unit,
-    onDialogDismiss: () -> Unit,
-    onWeightSave: (String, String) -> Unit
+    onAction: (WeightAction) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -111,7 +106,7 @@ fun WeightContent(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onFabClick,
+                onClick = { onAction(WeightAction.FabClick) },
                 containerColor = MyCatColors.Primary,
                 contentColor = MyCatColors.OnPrimary
             ) {
@@ -142,7 +137,7 @@ fun WeightContent(
                 WeightTab.entries.forEach { tab ->
                     Tab(
                         selected = uiState.selectedTab == tab,
-                        onClick = { onTabSelected(tab) },
+                        onClick = { onAction(WeightAction.TabSelected(tab)) },
                         text = {
                             Text(
                                 text = tab.label,
@@ -166,8 +161,8 @@ fun WeightContent(
     // 체중 입력 다이얼로그
     if (uiState.showInputDialog) {
         WeightInputDialog(
-            onDismiss = onDialogDismiss,
-            onSave = onWeightSave
+            onDismiss = { onAction(WeightAction.DialogDismiss) },
+            onSave = { weight,memo -> onAction(WeightAction.WeightSave(weight, memo)) }
         )
     }
 }
@@ -645,10 +640,7 @@ private fun WeightContentPreview() {
                 )
             ),
             onBack = {},
-            onTabSelected = {},
-            onFabClick = {},
-            onDialogDismiss = {},
-            onWeightSave = { _, _ -> }
+           onAction = {}
         )
     }
 }

@@ -4,14 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lastaosi.mycat.domain.model.DiaryMood
 import com.lastaosi.mycat.domain.model.MedicationType
-import com.lastaosi.mycat.domain.repository.CatRepository
-import com.lastaosi.mycat.domain.repository.BreedRepository
-import com.lastaosi.mycat.domain.repository.CatDiaryRepository
-import com.lastaosi.mycat.domain.repository.CatTipRepository
-import com.lastaosi.mycat.domain.repository.MedicationRepository
-import com.lastaosi.mycat.domain.repository.VaccinationRecordRepository
-import com.lastaosi.mycat.domain.repository.WeightRecordRepository
-import com.lastaosi.mycat.domain.usecase.CalculateAgeMonthUseCase
+import com.lastaosi.mycat.domain.usecase.MainUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -29,14 +22,7 @@ import kotlin.time.Clock
  * 최근 일기 미리보기를 [MainUiState]로 관리한다.
  */
 class MainViewModel(
-    private val catRepository: CatRepository,
-    private val breedRepository: BreedRepository,
-    private val catTipRepository: CatTipRepository,
-    private val calculateAgeMonthUseCase: CalculateAgeMonthUseCase,
-    private val vaccinationRecordRepository: VaccinationRecordRepository,
-    private val medicationRepository: MedicationRepository,
-    private val catDiaryRepository: CatDiaryRepository,
-    private val weightRecordRepository: WeightRecordRepository
+    private val useCase: MainUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -46,9 +32,32 @@ class MainViewModel(
         loadData()
     }
 
+    // 기존 개별 함수들 대신 onAction 하나로
+    fun onAction(action: MainAction) {
+        when (action) {
+            is MainAction.MenuClick -> { /* 드로어는 Content에서 처리 */ }
+            is MainAction.RefreshTip -> refreshTip()
+            is MainAction.AddCatClick -> { /* Navigation은 Screen에서 처리 */ }
+            is MainAction.CatSelected -> onCatSelected(action.catId)
+            is MainAction.DrawerItemClick -> onDrawerItemClick(action.item)
+            is MainAction.Navigate -> { /* Navigation은 Screen에서 처리 */ }
+            else -> {}
+        }
+    }
+
+    private fun onCatSelected(catId: Long) {
+        viewModelScope.launch {
+            useCase.setRepresentative(catId)
+        }
+    }
+
+    private fun onDrawerItemClick(item: DrawerItem) {
+        _uiState.update { it.copy(selectedDrawerItem = item) }
+    }
+
     private fun loadData() {
         viewModelScope.launch {
-            catRepository.getAllCats()
+            useCase.getAllCats()
                 .collect { cats ->
                     val representative = cats.firstOrNull { it.isRepresentative }
                         ?: cats.firstOrNull()
@@ -61,9 +70,9 @@ class MainViewModel(
                     }
                     representative ?: return@collect
 
-                    val ageMonth = calculateAgeMonthUseCase(representative.birthDate)
+                    val ageMonth = useCase.calculateAgeMonth(representative.birthDate)
                     representative.breedId?.let { breedId ->
-                        val guide = breedRepository.getGuideForMonth(breedId, ageMonth)
+                        val guide = useCase.getBreedGuide(breedId, ageMonth)
                         _uiState.update {
                             it.copy(
                                 todayFoodDryG = guide?.foodDryG ?: 0,
@@ -76,7 +85,7 @@ class MainViewModel(
                     }
                     // 체중 최신값 추가
                     launch {
-                        weightRecordRepository.getWeightHistory(representative.id)
+                        useCase.getLatestWeight(representative.id)
                             .collect { records ->
                                 val latest = records.maxByOrNull { it.recordedAt }
                                 _uiState.update { it.copy(latestWeightG = latest?.weightG) }
@@ -87,26 +96,20 @@ class MainViewModel(
                     loadUpcomingVaccinations()
                     loadUpcomingMedications(representative.id)
                     loadRecentDiaries(representative.id)
+                    refreshTip()
                 }
         }
     }
-    fun onCatSelected(catId: Long) {
-        viewModelScope.launch {
-            catRepository.setRepresentative(catId)
-        }
-    }
+
     fun onMenuClick() {
         // 드로어 열기는 Content에서 drawerState로 직접 처리
         // 필요 시 analytics 등 추가
     }
 
-    fun onDrawerItemClick(item: DrawerItem) {
-        _uiState.update { it.copy(selectedDrawerItem = item) }
-    }
 
     fun refreshTip() {
         viewModelScope.launch {
-            val tip = catTipRepository.getRandomTip()
+            val tip = useCase.getRandomTip()
             _uiState.update { it.copy(randomTip = tip?.content) }
         }
     }
@@ -115,7 +118,7 @@ class MainViewModel(
         viewModelScope.launch {
             // 현재 시각부터 30일 이내 예방접종 조회
             val now = Clock.System.now().toEpochMilliseconds()
-            val records = vaccinationRecordRepository.getUpcomingVaccinations(fromTimestamp = now)
+            val records = useCase.getUpcomingVaccinations(fromTimestamp = now)
             val alarms = records.map { record ->
                 val dDay = calculateDDay(record.nextDueAt ?: 0L)
                 UpcomingAlarm(
@@ -131,7 +134,7 @@ class MainViewModel(
     private fun loadRecentDiaries(catId: Long) {
         viewModelScope.launch {
             // getDiariesByCat Flow에서 최근 2개만 사용
-            catDiaryRepository.getDiariesByCat(catId)
+            useCase.getDiaries(catId)
                 .collect { diaries ->
                     val previews = diaries
                         .sortedByDescending { it.createdAt }
@@ -153,7 +156,7 @@ class MainViewModel(
     // 약 복용 알람 (MedicationAlarm 테이블에서)
     private fun loadUpcomingMedications(catId: Long) {
         viewModelScope.launch {
-            medicationRepository.getActiveMedications(catId)
+            useCase.getMedications.active(catId)
                 .collect { medications ->
                     val alarms = medications.map { med ->
                         // 알람 시간은 MedicationAlarm 테이블에 있어서

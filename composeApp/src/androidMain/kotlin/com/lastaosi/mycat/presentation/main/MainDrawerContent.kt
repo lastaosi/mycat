@@ -50,16 +50,14 @@ fun MainDrawerContent(
     cat: Cat?,
     allCats: List<Cat>,
     selectedItem: DrawerItem,
-    onItemClick: (DrawerItem) -> Unit,
-    onCatSelected: (Long) -> Unit,      // 추가
-    onAddCatClick: () -> Unit
+    onAction: (MainAction) -> Unit
 ) {
     ModalDrawerSheet(
         drawerContainerColor = MyCatColors.Background,
         drawerContentColor = MyCatColors.OnBackground
     ) {
         // 헤더 — 고양이 프로필
-        DrawerHeader(cat = cat,allCats= allCats,onCatSelected=onCatSelected,onAddCatClick=onAddCatClick,onItemClick)
+        DrawerHeader(cat = cat,allCats= allCats,onAction=onAction)
 
         HorizontalDivider(
             color = MyCatColors.Border,
@@ -73,7 +71,7 @@ fun MainDrawerContent(
             DrawerMenuItem(
                 meta = meta,
                 isSelected = selectedItem == meta.item,
-                onClick = { onItemClick(meta.item) }
+                onClick = { onAction(MainAction.Navigate(meta.item)) }
             )
         }
 
@@ -96,9 +94,7 @@ fun MainDrawerContent(
 private fun DrawerHeader(
     cat: Cat?,
     allCats: List<Cat>,
-    onCatSelected: (Long) -> Unit,
-    onAddCatClick: () -> Unit,
-    onItemClick: (DrawerItem) -> Unit
+    onAction: (MainAction) -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -154,7 +150,7 @@ private fun DrawerHeader(
             // 대표 고양이 이름 옆에 수정 아이콘
             IconButton(
                 onClick = {
-                    onItemClick(DrawerItem.PROFILE_EDIT)
+                    onAction(MainAction.Navigate(DrawerItem.PROFILE_EDIT))
                 },
                 modifier = Modifier.size(24.dp)
             ) {
@@ -185,7 +181,7 @@ private fun DrawerHeader(
                 allCats.forEach { c ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.clickable { onCatSelected(c.id) }
+                        modifier = Modifier.clickable { onAction(MainAction.CatSelected(c.id)) }
                     ) {
                         Box(
                             modifier = Modifier
@@ -233,7 +229,7 @@ private fun DrawerHeader(
 
         // 고양이 추가 버튼
         TextButton(
-            onClick = onAddCatClick,
+            onClick = { onAction(MainAction.AddCatClick)},
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
@@ -314,11 +310,9 @@ private fun MainDrawerContentPreview() {
                 isRepresentative = true,
                 createdAt = 0L
             ),
+            allCats = emptyList(),
             selectedItem = DrawerItem.HOME,
-            onItemClick = {},
-            onCatSelected = {},
-            onAddCatClick = {},
-            allCats = emptyList()
+            onAction = {}
         )
     }
 }
@@ -332,9 +326,7 @@ private fun MainDrawerContentNoCatPreview() {
             cat = null,
             allCats = emptyList(),
             selectedItem = DrawerItem.HOME,
-            onItemClick = {},
-            onCatSelected = {},
-            onAddCatClick = {},
+            onAction = {}
         )
     }
 }
