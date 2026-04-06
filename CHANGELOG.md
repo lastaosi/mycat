@@ -293,6 +293,58 @@
 
 ---
 
+---
+
+## 2026-04-06 (2차)
+
+### Presentation 레이어 — CareGuideScreen 신규 구현
+
+#### CareGuideScreen (케어 가이드)
+- `CareGuideViewModel`: 대표 고양이 품종 기반 월령별 가이드 데이터 로드
+  - `CareGuideUseCase`: `GetAllBreedGuidesUseCase` + `GetRepresentativeCatUseCase` 묶음
+- `CareGuideUiState`: 고양이 이름, 품종명, 현재 월령, 가이드 목록, 품종 미등록 여부 상태 포함
+- `CareGuideScreen` / `CareGuideContent` 분리
+  - 현재 월령 강조 카드: 건식·습식·물 급여량, 적정 체중 범위 표시
+  - 전체 월령 리스트: 현재 월령 하이라이트
+  - 품종 미등록 시 안내 화면(`NoBreedContent`) 분기
+
+---
+
+### Main 화면 — HealthCheckCard DB 실데이터 연동
+
+#### HealthCheckCard 개선
+- 하드코딩 TODO 제거 → `HealthChecklist` DB 실데이터 연동
+- 아이템 타입별 이모지 표시: 예방접종(`💉`) / 검진(`🏥`) / 수술·처치(`✂️`)
+- `isRecommended` 여부에 따라 "권장" 배지 표시
+- `MainUiState.healthCheckItems` 필드 추가
+- `MainViewModel.loadHealthCheckSummary(ageMonth)` — 대표 고양이 로드 시 현재 월령 체크리스트 함께 조회
+
+---
+
+### Domain 레이어 — UseCase 추가
+
+| 패키지 | UseCase |
+|--------|---------|
+| `healthcheck/` | `GetHealthChecklistUseCase`, `GetHealthCheckSummaryUseCase`, `HealthCheckUseCase` |
+| `careguide/` | `CareGuideUseCase` |
+| `breed/` | `GetAllBreedGuidesUseCase` |
+
+---
+
+### Navigation 업데이트
+
+- `NavRoutes.CareGuide` 라우트 추가
+- `AppNavHost`: CareGuideScreen 라우트 연결
+- `DrawerItem.SETTINGS` 항목 제거
+
+---
+
+### DI 업데이트
+
+- `AppModule`: `GetHealthChecklistUseCase`, `GetHealthCheckSummaryUseCase`, `HealthCheckUseCase`, `CareGuideUseCase`, `GetAllBreedGuidesUseCase` Koin 등록
+
+---
+
 ## 다음 작업 예정
 - 고양이 상세/편집 화면
 - 체중 기록 그래프
