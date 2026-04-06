@@ -5,15 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.lastaosi.mycat.domain.repository.CatRepository
 import com.lastaosi.mycat.domain.repository.HealthChecklistRepository
 import com.lastaosi.mycat.domain.usecase.CalculateAgeMonthUseCase
+import com.lastaosi.mycat.domain.usecase.healthcheck.HealthCheckUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class HealthCheckViewModel(
-    private val catRepository: CatRepository,
-    private val healthChecklistRepository: HealthChecklistRepository,
-    private val calculateAgeMonthUseCase: CalculateAgeMonthUseCase
+    private val useCase: HealthCheckUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HealthCheckUiState())
@@ -22,35 +21,18 @@ class HealthCheckViewModel(
     // HealthCheckViewModel - loadData 대신 init에서 대표 고양이 로드
     init {
         viewModelScope.launch {
-            val cat = catRepository.getRepresentativeCat() ?: return@launch
-            val ageMonth = calculateAgeMonthUseCase(cat.birthDate)
+            val cat = useCase.getRepresentativeCat() ?: return@launch
+            val ageMonth = useCase.calculateAgeMonth(cat.birthDate)
 
-            android.util.Log.d("HealthCheck", "birthDate: ${cat.birthDate}")
-            android.util.Log.d("HealthCheck", "ageMonth: $ageMonth")
             _uiState.update { it.copy(catName = cat.name, ageMonth = ageMonth, isLoading = true) }
 
-            healthChecklistRepository.getAllChecklist()
+            useCase.getHealthCheckList()
                 .collect { items ->
                     _uiState.update { it.copy(allItems = items, isLoading = false) }
                 }
         }
     }
 
-    fun loadData(catId: Long) {
-        viewModelScope.launch {
-            val cat = catRepository.getCatById(catId) ?: return@launch
-            val ageMonth = calculateAgeMonthUseCase(cat.birthDate)
-            _uiState.update { it.copy(catName = cat.name, ageMonth = ageMonth, isLoading = true) }
-
-            // 현재 개월수까지의 전체 체크리스트
-            healthChecklistRepository.getChecklistUpToMonth(ageMonth)
-                .collect { items ->
-                    _uiState.update {
-                        it.copy(allItems = items, isLoading = false)
-                    }
-                }
-        }
-    }
 
     fun onTabSelected(tab: HealthCheckTab) {
         _uiState.update { it.copy(selectedTab = tab) }

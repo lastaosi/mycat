@@ -96,6 +96,7 @@ class MainViewModel(
                     loadUpcomingVaccinations()
                     loadUpcomingMedications(representative.id)
                     loadRecentDiaries(representative.id)
+                    loadHealthCheckSummary(ageMonth)
                     refreshTip()
                 }
         }
@@ -106,7 +107,14 @@ class MainViewModel(
         // 필요 시 analytics 등 추가
     }
 
-
+    private fun loadHealthCheckSummary(ageMonth: Int) {
+        viewModelScope.launch {
+            useCase.getHealthCheckSummary(ageMonth)
+                .collect { items ->
+                    _uiState.update { it.copy(healthCheckItems = items) }
+                }
+        }
+    }
     fun refreshTip() {
         viewModelScope.launch {
             val tip = useCase.getRandomTip()

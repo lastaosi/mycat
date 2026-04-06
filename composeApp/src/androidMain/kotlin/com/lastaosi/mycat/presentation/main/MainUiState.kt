@@ -1,11 +1,12 @@
 package com.lastaosi.mycat.presentation.main
 
 import com.lastaosi.mycat.domain.model.Cat
+import com.lastaosi.mycat.domain.model.HealthChecklist
 
 /** 사이드 드로어 메뉴 항목 */
 enum class DrawerItem {
     HOME, CARE_GUIDE, WEIGHT, HEALTH_CHECK,
-    VACCINATION, DIARY, MEDICATION, VET_MAP, SETTINGS,  PROFILE_EDIT
+    VACCINATION, DIARY, MEDICATION, VET_MAP,   PROFILE_EDIT
 }
 
 /**
@@ -28,7 +29,8 @@ data class MainUiState(
     // 추가
     val upcomingVaccinations: List<UpcomingAlarm> = emptyList(),
     val upcomingMedications: List<UpcomingAlarm> = emptyList(),
-    val recentDiaries: List<DiaryPreview> = emptyList()
+    val recentDiaries: List<DiaryPreview> = emptyList(),
+    val healthCheckItems : List<HealthChecklist> = emptyList()
 )
 
 // 알림 미리보기 모델

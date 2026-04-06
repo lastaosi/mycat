@@ -41,7 +41,6 @@ private val drawerMenuItems = listOf(
     DrawerMenuMeta(DrawerItem.MEDICATION,   "약 복용 관리", "💊"),  // 추가
     DrawerMenuMeta(DrawerItem.DIARY,        "다이어리",     "📝"),
     DrawerMenuMeta(DrawerItem.VET_MAP,      "근처 동물병원", "🏥"),
-    DrawerMenuMeta(DrawerItem.SETTINGS,     "설정",         "⚙️"),
 )
 
 // ─── 1. DrawerContent 컴포넌트 ──────────────────────────────────────

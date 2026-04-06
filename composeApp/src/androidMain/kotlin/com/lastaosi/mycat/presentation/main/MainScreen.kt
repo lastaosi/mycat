@@ -42,6 +42,7 @@ fun MainScreen(
                                 navController.navigate(NavRoutes.ProfileEdit.createRoute(it))
                             }
                         }
+                        DrawerItem.CARE_GUIDE -> navController.navigate(NavRoutes.CareGuide.route)
                         else -> viewModel.onAction(action)
                     }
                 }
