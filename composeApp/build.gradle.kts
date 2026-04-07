@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.google.places)
             implementation(libs.google.location)
             implementation(libs.androidx.work.runtime)
+            implementation("com.google.android.gms:play-services-ads:23.6.0")
 
         }
         commonMain.dependencies {
@@ -87,6 +88,15 @@ android {
     namespace = "com.lastaosi.mycat"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../mycat-release.keystore")  // 키스토어 위치
+            storePassword = project.findProperty("MYCAT_STORE_PASSWORD") as String
+            keyAlias = project.findProperty("MYCAT_KEY_ALIAS") as String
+            keyPassword = project.findProperty("MYCAT_KEY_PASSWORD") as String
+        }
+    }
+
     defaultConfig {
         applicationId = "com.lastaosi.mycat"
         minSdk = libs.versions.android.minSdk.get().toInt()
@@ -103,8 +113,16 @@ android {
             "MAPS_API_KEY",
             "\"${project.findProperty("MAPS_API_KEY") ?: ""}\""
         )
+        buildConfigField(
+            "String",
+            "ADMOB_BANNER_ID",
+            "\"${project.findProperty("ADMOB_BANNER_ID")}\""
+        )
         manifestPlaceholders["MAPS_API_KEY"] =
             project.findProperty("MAPS_API_KEY") ?: ""
+
+        manifestPlaceholders["ADMOB_APP_ID"] =
+            project.findProperty("ADMOB_APP_ID") as String
     }
     buildFeatures {
         buildConfig = true
@@ -115,14 +133,22 @@ android {
         }
     }
     buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+
 }
 
 sqldelight {

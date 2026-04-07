@@ -82,7 +82,7 @@ fun MainScrollContent(
         }
 
         // AdMob 배너 자리
-        AdMobPlaceholder()
+        AdMobBanner()
 
         Spacer(modifier = Modifier.height(16.dp))
     }

@@ -1,9 +1,12 @@
 package com.lastaosi.mycat.worker
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import com.lastaosi.mycat.domain.repository.CatRepository
 import com.lastaosi.mycat.domain.repository.MedicationRepository
 import com.lastaosi.mycat.util.L
@@ -41,18 +44,21 @@ class AlarmReceiver : BroadcastReceiver(), KoinComponent {
 
                 // 권한 확인
                 val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    androidx.core.content.ContextCompat.checkSelfPermission(
+                    ContextCompat.checkSelfPermission(
                         context,
-                        android.Manifest.permission.POST_NOTIFICATIONS
-                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                        Manifest.permission.POST_NOTIFICATIONS
+                    ) == PackageManager.PERMISSION_GRANTED
                 } else true
+
                 L.d("약 복용 알람 권한 ${hasPermission}")
-                // 알림 발송
-                NotificationHelper.showMedicationNotification(
-                    context = context.applicationContext,
-                    catName = catName,
-                    medicationName = medicationName
-                )
+
+                if (hasPermission) {  // 이 조건문이 빠져있어요!
+                    NotificationHelper.showMedicationNotification(
+                        context = context.applicationContext,
+                        catName = catName,
+                        medicationName = medicationName
+                    )
+                }
                 L.d("약 복용 알람 발송 완료!")
                 // 다음날 같은 시각으로 재등록
                 CoroutineScope(Dispatchers.IO).launch {

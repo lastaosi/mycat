@@ -345,8 +345,71 @@
 
 ---
 
+---
+
+## 2026-04-07
+
+### iOS 화면 구현 착수 — 네비게이션 구조 + SplashScreen
+
+#### iOS 프레임워크 전환
+- Xcode 빌드 페이즈 변경: `:shared:embedAndSignAppleFrameworkForXcode` → `:composeApp:embedAndSignAppleFrameworkForXcode`
+- Swift `import Shared` → `import ComposeApp` 으로 전환
+- `composeApp` 프레임워크에 모든 KMP 비즈니스 로직 포함
+
+#### Koin iOS 초기화 (`iosMain/di/KoinIos.kt`)
+- `iosDatabaseModule`: `DatabaseDriverFactory`(NativeSqliteDriver) + `MyCatDatabase` + 전체 DAO queries 등록
+- `fun initKoin()` 최상위 함수 → Swift에서 `KoinIosKt.doInitKoin()` 호출
+- `iOSApp.swift` `init()`에서 앱 시작 시 Koin 초기화
+
+#### iOS ViewModel 패턴 확립
+- Android: `androidx.lifecycle.ViewModel` + Koin `viewModel { }`
+- iOS: Swift `ObservableObject` + Kotlin `KoinComponent` 래퍼 클래스
+- Kotlin → Swift 콜백 패턴: `onSuccess: () -> Unit` / `onFailure: () -> Unit` (KotlinBoolean 이슈 회피)
+
+#### SplashKotlinViewModel (`iosMain/presentation/SplashKotlinViewModel.kt`)
+- `KoinComponent`로 `CatRepository` inject
+- `checkFirstRun(onHasProfile, onNoProfile)`: 2초 최소 대기 + DB 고양이 수 확인 → 콜백 전달
+- `MainScope()` + `dispose()` 로 코루틴 생명주기 관리
+
+#### iOS 네비게이션 구조
+- `AppRoute` — `enum AppRoute: Hashable` (Android `NavRoutes` 동일 구조)
+  - `splash`, `main`, `profileRegister`, `profileEdit(catId:)`, `weight(catId:)` 등
+- `AppRoot` — 최상위 라우터: `@State var currentRoute` 기반 화면 전환
+  - `splash → main` 또는 `splash → profileRegister` 분기
+
+#### SplashView (`Screens/Splash/SplashView.swift`)
+- Android SplashScreen과 동일한 UI/UX 구현 (SwiftUI)
+- 고양이 이미지 에셋 `Assets.xcassets`에 추가: `byeori_sit`, `byeori_walk`, `byeori_run`, `byeori_roll`
+- walk 고양이: 좌우 왕복 (Task 루프 + `withAnimation(.linear)`, ±400pt)
+- run 고양이: 랜덤 튕기기 (60fps Task 루프, 방향 전환 시 `scaleEffect` 반전)
+- sit 고양이: 하단 고정
+- roll 고양이: 중앙 상단 고정
+- 배경색 `#FFF8F0`, "My Cat" 로고 텍스트, 로딩 안내 텍스트
+- `SplashViewModel` → `SplashKotlinViewModel` 콜백 수신 → `AppRoot` 화면 전환
+
+#### iOS 테마 (`Theme/MyCatTheme.swift`)
+- `MyCatColors` — Android 테마 팔레트와 동일한 색상 정의
+  - `primary(#FF8C42)`, `background(#FFF8F3)`, `surface(#FFF0E6)`, `secondary(#A0522D)` 등
+
+---
+
+### Android — 아이콘 및 빌드 설정
+
+#### 앱 아이콘 교체
+- 아이콘 포맷 변경: `.png` → `.webp` (모든 해상도 mdpi~xxxhdpi)
+- Adaptive Icon 구성: `ic_launcher_foreground.webp` + `ic_launcher_background.xml` 추가
+- `ic_launcher-playstore.png` (512×512) 추가
+
+#### AdMob 배너 (`AdMobBannerView.kt`)
+- `AdMobBanner` Composable 추가 — 실제 배너 광고 뷰 연동
+
+#### 기타
+- `proguard-rules.pro` 추가 (릴리즈 빌드 난독화 규칙)
+- `AlarmReceiver` 개선
+- `Base64Encoder.ios.kt` 업데이트
+
+---
+
 ## 다음 작업 예정
-- 고양이 상세/편집 화면
-- 체중 기록 그래프
-- 투약 복약 기록 달력 뷰
-- 일기 상세/편집 화면
+- iOS ProfileRegisterScreen 구현
+- iOS MainScreen 구현 (사이드 드로어 + 스크롤 카드)

@@ -3,6 +3,7 @@ package com.lastaosi.mycat.presentation.splash
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.lastaosi.mycat.domain.repository.CatRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -32,7 +33,12 @@ class SplashViewModel(
 
     private fun checkFirstRun() {
         viewModelScope.launch {
-            val count = catRepository.getCount()
+            // 두 작업 병렬 실행
+            val minDisplayJob = launch { delay(2000L) }
+            val count = catRepository.getCount()  // DB 조회는 suspend라 여기서 바로 실행
+
+            minDisplayJob.join()  // 2초 채울 때까지 대기
+
             _destination.value = if (count > 0) {
                 SplashDestination.Main
             } else {
