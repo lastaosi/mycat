@@ -261,9 +261,9 @@ class ProfileRegisterViewModel(
                     _uiState.update {
                         it.copy(
                             geminiBreedRaw = result.geminiRaw,
-                            breedNameCustom = result.geminiRaw,
+                            breedNameCustom = result.matchedBreed?.nameKo ?: result.geminiRaw,
+                            breedSearchQuery = result.matchedBreed?.nameKo ?: result.geminiRaw,
                             geminiConfidence = result.confidence,
-                            breedSearchQuery = result.geminiRaw,
                             breedId = result.matchedBreed?.id,
                             isLoading = false
                         )

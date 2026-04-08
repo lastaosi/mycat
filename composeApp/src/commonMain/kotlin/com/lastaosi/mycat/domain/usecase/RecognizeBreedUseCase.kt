@@ -4,6 +4,7 @@ import com.lastaosi.mycat.data.remote.BreedRecognitionResult
 import com.lastaosi.mycat.data.remote.GeminiService
 import com.lastaosi.mycat.domain.model.Breed
 import com.lastaosi.mycat.domain.repository.BreedRepository
+import com.lastaosi.mycat.util.L
 import kotlinx.coroutines.flow.first
 
 /**
@@ -32,16 +33,41 @@ class RecognizeBreedUseCase(
     suspend operator fun invoke(imageBytes: ByteArray): Result<RecognizeBreedResult> {
         return geminiService.recognizeBreed(imageBytes)
             .mapCatching { result ->
-                val matched = breedRepository
-                    .searchBreeds(result.breedName)
-                    .first()
-                    .firstOrNull()
-
+                val matched = findBestMatch(result.breedName)
                 RecognizeBreedResult(
                     geminiRaw = result.breedName,
                     confidence = result.confidence,
                     matchedBreed = matched
                 )
             }
+    }
+
+    private suspend fun findBestMatch(breedName: String): Breed? {
+        L.d("findBestMatch 시작 - breedName: $breedName")
+        val count = breedRepository.getAllBreeds().first().size
+        L.d("breed 테이블 총 개수: $count")
+        // 1단계: 전체 이름으로 검색
+        val fullMatch = breedRepository.searchBreeds(breedName).first().firstOrNull()
+        L.d("1단계 전체 검색 결과: $fullMatch")
+        if (fullMatch != null) return fullMatch
+
+        // 2단계: 단어별로 쪼개서 검색
+        val words = breedName.split(" ")
+            .filter { it.length >= 2 }
+            .sortedByDescending { it.length }
+        L.d("2단계 검색 단어들: $words")
+
+        for (word in words) {
+            val match = breedRepository.searchBreeds(word).first().firstOrNull()
+            L.d("단어 '$word' 검색 결과: $match")
+            if (match != null) return match
+        }
+
+        // 3단계: 앞 2글자로 검색
+        val prefix = breedName.take(2)
+        val prefixMatch = breedRepository.searchBreeds(prefix).first().firstOrNull()
+        L.d("3단계 앞 2글자 '$prefix' 검색 결과: $prefixMatch")
+
+        return prefixMatch
     }
 }

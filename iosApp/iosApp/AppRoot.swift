@@ -26,14 +26,13 @@ struct AppRoot: View {
                 )
             case .main:
                 // MainView - 다음 단계에서 구현 예정
-                PlaceholderView(title: "메인 홈") {
-                    currentRoute = .main
-                }
+                MainTabView()
             case .profileRegister:
-                // ProfileRegisterView - 다음 단계에서 구현 예정
-                PlaceholderView(title: "고양이 등록") {
-                    currentRoute = .main
-                }
+                ProfileRegisterView(onSaved: {
+                        withAnimation(.easeInOut(duration: 0.4)) {
+                            currentRoute = .main
+                        }
+                    })
             default:
                 PlaceholderView(title: "준비 중") {
                     currentRoute = .main
@@ -44,7 +43,7 @@ struct AppRoot: View {
 }
 
 // MARK: - 임시 화면 (각 화면 구현 전까지 사용)
-private struct PlaceholderView: View {
+ struct PlaceholderView: View {
     let title: String
     let onContinue: () -> Void
 
@@ -72,4 +71,6 @@ private struct PlaceholderView: View {
             }
         }
     }
+    
+   
 }

@@ -1,5 +1,64 @@
 # MyCat 작업 일지
 
+## 2026-04-08
+
+### iOS DB 초기화 문제 해결
+
+#### 문제
+- iOS에서 `NativeSqliteDriver` 사용 시 번들에서 복사한 `mycat.db`를 무시하고
+  새 빈 DB를 생성하는 문제 발생
+- `breed`, `health_checklist` 등 시드 데이터가 전혀 로드되지 않음
+
+#### 원인 분석
+1. **복사 경로 불일치** — `Documents`에 복사했으나 드라이버는
+   `Library/Application Support/databases/`를 사용
+2. **user_version 불일치** — `mycat.db`의 `PRAGMA user_version = 0`이었으나
+   `MyCatDatabase.Schema.version = 1`이라 드라이버가 새 DB로 판단,
+   `CREATE TABLE` 재실행 → `table already exists` 에러 발생
+
+#### 해결
+- 복사 대상 경로를 `Library/Application Support/databases/mycat.db`로 수정
+- DB Browser에서 `PRAGMA user_version = 1` 설정 후 번들 파일 교체
+
+---
+
+### iOS ProfileRegisterView 구현
+
+#### 구현 내용
+- `ProfileKotlinViewModel.kt` (iosMain) — 고양이 등록/수정, 품종 검색, Gemini 인식
+- `ProfileViewModel.swift` — KotlinViewModel 래핑, ObservableObject
+- `ProfileRegisterView.swift` — PhotosPicker, 품종 검색, 저장
+
+#### 발생 문제 및 해결
+- `ByteArray` → `KotlinByteArray` 변환 필요 (`usePinned`, `addressOf`)
+- `KotlinDouble`, `KotlinLong`, `KotlinInt` 타입 변환 처리
+- `birthDate` 포맷 불일치 (`202509` → `2025-09`) — save() 전 변환 처리
+- `CalculateAgeMonthUseCase` 방어 코드 추가 (`split("-")` 실패 시 0 반환)
+- `recognizeBreed` 콜백에 `breedId` 누락 → 시그니처에 `breedId: Int?` 추가
+
+---
+
+### 품종 매칭 로직 개선
+
+#### 문제
+- Gemini 반환 품종명과 DB 품종명이 정확히 일치하지 않으면 매칭 실패
+
+#### 해결 (`RecognizeBreedUseCase.findBestMatch`)
+1. 전체 이름으로 검색
+2. 단어별로 분리 후 순차 검색 (긴 단어 우선)
+3. 앞 2글자로 검색
+
+---
+
+### Android ProfileRegisterViewModel 개선
+- 품종 인식 결과 표시 시 Gemini 원본명 대신 DB 매칭 품종명 우선 표시
+```kotlin
+  breedNameCustom = result.matchedBreed?.nameKo ?: result.geminiRaw
+  breedSearchQuery = result.matchedBreed?.nameKo ?: result.geminiRaw
+```
+
+---
+
 ## 2026-04-02
 
 ### 초기 세팅 (이전 커밋: `3e062a3`)

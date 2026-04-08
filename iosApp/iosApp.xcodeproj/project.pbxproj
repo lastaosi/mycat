@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		06310DAB2F86170500A513E7 /* mycat.db in Resources */ = {isa = PBXBuildFile; fileRef = 06310DAA2F86170500A513E7 /* mycat.db */; };
 		065459D02F84CCEA003D30EF /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 065459CF2F84CCB8003D30EF /* libsqlite3.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		06310DAA2F86170500A513E7 /* mycat.db */ = {isa = PBXFileReference; lastKnownFileType = file; path = mycat.db; sourceTree = "<group>"; };
 		065459CF2F84CCB8003D30EF /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		2E45015A0DF637BDEE1AC5B6 /* MyCat.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MyCat.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -72,6 +74,7 @@
 		CD903686427F4DA0BB4970F6 = {
 			isa = PBXGroup;
 			children = (
+				06310DAA2F86170500A513E7 /* mycat.db */,
 				6B3752C62FF9B8DE3F2E0381 /* Configuration */,
 				693CFD359A0C0C443226DEA5 /* iosApp */,
 				065459CE2F84CCB8003D30EF /* Frameworks */,
@@ -144,6 +147,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				06310DAB2F86170500A513E7 /* mycat.db in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
