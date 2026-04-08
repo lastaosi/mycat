@@ -20,3 +20,5 @@ captures
 node_modules/
 mycat-release.keystore
 iosApp/Configuration/Config.xcconfig
+*.keystore
+google-services.json
