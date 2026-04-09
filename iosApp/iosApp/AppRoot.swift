@@ -25,8 +25,8 @@ struct AppRoot: View {
                     }
                 )
             case .main:
-                // MainView - 다음 단계에서 구현 예정
-                MainTabView()
+                // MainDrawerView — TabView 제거, 사이드 드로어 방식
+                MainDrawerView()
             case .profileRegister:
                 ProfileRegisterView(onSaved: {
                         withAnimation(.easeInOut(duration: 0.4)) {

@@ -2,6 +2,8 @@ import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
+    // 드로어 상태: MainDrawerView 에서 EnvironmentObject 로 주입
+    @EnvironmentObject var drawerState: DrawerState
 
     var body: some View {
         NavigationStack {
@@ -9,7 +11,6 @@ struct HomeView: View {
                 VStack(spacing: 12) {
                     // 오늘의 케어 가이드 카드
                     if !viewModel.catName.isEmpty {
-                        
                         CareGuideCard(
                             catName: viewModel.catName,
                             breedName: viewModel.breedName,
@@ -19,18 +20,38 @@ struct HomeView: View {
                             weightMinG: viewModel.weightMinG,
                             weightMaxG: viewModel.weightMaxG
                         )
-                        
                     }
 
                     // 건강 체크리스트 카드
                     HealthCheckSummaryCard(titles: viewModel.healthCheckTitles)
 
-                    // 최근 체중 카드
-                    LatestWeightCard(
-                        weightG: viewModel.latestWeightG,
-                        weightMinG: viewModel.weightMinG,
-                        weightMaxG: viewModel.weightMaxG
-                    )
+                    // 최근 체중 카드 → 탭하면 WeightView 이동
+                    NavigationLink(value: AppRoute.weight(catId: viewModel.catId)) {
+                        LatestWeightCard(
+                            weightG: viewModel.latestWeightG,
+                            weightMinG: viewModel.weightMinG,
+                            weightMaxG: viewModel.weightMaxG
+                        )
+                    }
+                    .buttonStyle(.plain)    // 기본 NavigationLink 파란색 제거
+
+                    // 예방접종 카드 → 탭하면 VaccinationView 이동
+                    NavigationLink(value: AppRoute.vaccination(catId: viewModel.catId)) {
+                        VaccinationSummaryCard()
+                    }
+                    .buttonStyle(.plain)
+
+                    // 약 복용 관리 카드 → 탭하면 MedicationView 이동
+                    NavigationLink(value: AppRoute.medication(catId: viewModel.catId)) {
+                        MedicationSummaryCard()
+                    }
+                    .buttonStyle(.plain)
+
+                    // 다이어리 카드 → 탭하면 DiaryView 이동
+                    NavigationLink(value: AppRoute.diary(catId: viewModel.catId)) {
+                        DiarySummaryCard()
+                    }
+                    .buttonStyle(.plain)
 
                     // 팁 배너
                     if !viewModel.randomTip.isEmpty {
@@ -43,6 +64,27 @@ struct HomeView: View {
             .background(MyCatColors.background)
             .navigationTitle("MY Cat")
             .navigationBarTitleDisplayMode(.large)
+            // ─── 햄버거 버튼 (MainDrawerView 가 DrawerState 를 주입) ──
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    DrawerHamburgerButton()
+                }
+            }
+            // ─── Navigation Destination ──────────────────────────────
+            .navigationDestination(for: AppRoute.self) { route in
+                switch route {
+                case .weight(let catId):
+                    WeightView(catId: catId)
+                case .vaccination(let catId):
+                    VaccinationView(catId: catId)
+                case .medication(let catId):
+                    MedicationView(catId: catId)
+                case .diary(let catId):
+                    DiaryView(catId: catId)
+                default:
+                    PlaceholderView(title: "준비 중") {}
+                }
+            }
         }
         .onAppear {
             viewModel.load()
@@ -192,6 +234,72 @@ struct LatestWeightCard: View {
                     .font(.system(size: 13))
                     .foregroundColor(MyCatColors.textMuted)
             }
+        }
+    }
+}
+
+// ─── VaccinationSummaryCard ──────────────────────────────────────────
+struct VaccinationSummaryCard: View {
+    var body: some View {
+        MyCatCard {
+            HStack {
+                Text("💉").font(.system(size: 18))
+                Text("예방접종 관리")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(MyCatColors.onBackground)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundColor(MyCatColors.textMuted)
+            }
+            Spacer().frame(height: 6)
+            Text("접종 기록 및 다음 예정일을 관리하세요")
+                .font(.system(size: 12))
+                .foregroundColor(MyCatColors.textMuted)
+        }
+    }
+}
+
+// ─── MedicationSummaryCard ───────────────────────────────────────────
+struct MedicationSummaryCard: View {
+    var body: some View {
+        MyCatCard {
+            HStack {
+                Text("💊").font(.system(size: 18))
+                Text("약 복용 관리")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(MyCatColors.onBackground)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundColor(MyCatColors.textMuted)
+            }
+            Spacer().frame(height: 6)
+            Text("복용 중인 약과 알림 시간을 관리하세요")
+                .font(.system(size: 12))
+                .foregroundColor(MyCatColors.textMuted)
+        }
+    }
+}
+
+// ─── DiarySummaryCard ────────────────────────────────────────────────
+struct DiarySummaryCard: View {
+    var body: some View {
+        MyCatCard {
+            HStack {
+                Text("📝").font(.system(size: 18))
+                Text("다이어리")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(MyCatColors.onBackground)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundColor(MyCatColors.textMuted)
+            }
+            Spacer().frame(height: 6)
+            Text("소중한 순간을 기록하고 추억하세요")
+                .font(.system(size: 12))
+                .foregroundColor(MyCatColors.textMuted)
         }
     }
 }

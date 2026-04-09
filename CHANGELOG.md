@@ -1,5 +1,82 @@
 # MyCat 작업 일지
 
+## 2026-04-09
+
+### iOS 화면 구현 — HomeScreen + MainDrawerView + 세부 화면 5종
+
+#### HomeScreen (`Screens/Home/`)
+- `HomeKotlinViewModel.kt` (iosMain) — 대표 고양이 기준 홈 데이터 로드 (KDoc 주석 추가)
+  - `loadData()`: 고양이 정보, 케어 가이드, 최근 체중, 랜덤 팁, 건강 체크리스트 Flow 구독
+- `HomeViewModel.swift` — KotlinViewModel 래핑, ObservableObject (MARK 주석 정비)
+  - catId / catName / breedName / 급여량 / 체중 / 팁 / 체크리스트 @Published
+- `HomeView.swift` — Android MainScreen 스크롤 카드 방식 재현
+  - CareGuideCard: 건식·습식·물 급여량 + 적정 체중 범위
+  - HealthCheckSummaryCard: 현재 월령 체크리스트 항목 목록
+  - LatestWeightCard: 최근 체중 + 정상/범위 벗어남 배지
+  - VaccinationSummaryCard / MedicationSummaryCard / DiarySummaryCard: 탭 → 세부 화면 이동
+  - TipBannerCard: 랜덤 고양이 팁
+  - `NavigationLink(value: AppRoute)` 기반 세부 화면 전환
+  - `MyCatCard<Content>` 공통 카드 래퍼 추가
+
+#### MainDrawerView (`Screens/Main/`)
+- `MainKotlinViewModel.kt` (iosMain) — 사이드 드로어용 CatSummaryIos 모델 + 고양이 목록 로드
+  - `CatSummaryIos` data class: id, name, breedName, photoPath, isRepresentative
+  - `loadCats()`: getAllCats() Flow 구독 → CatSummaryIos 변환 후 콜백
+  - `setRepresentative()`: 대표 고양이 전환
+- `MainDrawerViewModel.swift` — MainKotlinViewModel 래핑, 대표 고양이 / 전체 목록 관리
+- `MainDrawerView.swift` — Android MainScreen + ModalNavigationDrawer 방식 재현
+  - `DrawerState` ObservableObject: EnvironmentObject 로 햄버거 버튼 공유
+  - `DrawerMenuItem` enum: 홈·케어가이드·체중·건강체크·예방접종·약복용·다이어리·동물병원
+  - `DrawerPanelView` / `DrawerHeaderView` / `DrawerMenuItemView` / `CatSwitchChip` 분리
+  - 멀티캣 전환 칩 (2마리 이상 시 드로어 헤더에 표시)
+  - 스와이프 제스처 (왼쪽 엣지 → 오픈, 오른쪽 스와이프 → 닫기)
+  - 딤 오버레이 (탭으로 닫기)
+  - 프로필 등록 / 수정 시트 연결
+- `MainTabView.swift` — TabView 방식 deprecated 처리 (주석으로 코드 유지)
+
+#### WeightScreen (`Screens/Weight/`)
+- `WeightKotlinViewModel.kt` (iosMain) — KDoc 상세 주석 포함
+  - `loadData()`: 고양이 정보 + 체중 히스토리 Flow + 품종 평균 성장 데이터
+  - `insertWeight()`: kg 입력 → g 변환 → DB 저장
+- `WeightViewModel.swift` — WeightRecordItem / BreedAvgItem / WeightTabType 로컬 모델
+  - `ageMonthAt()`: 기록 시점 개월 수 계산 (차트 x축)
+  - `formatDate()` / `toDate()` 날짜 유틸리티
+- `WeightView.swift` — 체중 추이 차트(Swift Charts) + 탭 전환 + 입력 시트
+
+#### VaccinationScreen (`Screens/Vaccination/`)
+- `VaccinationKotlinViewModel.kt` (iosMain) — KDoc 주석 포함
+  - `loadData()`: 접종 기록 Flow (최신순 정렬)
+  - `saveVaccination()` / `deleteVaccination()`
+- `VaccinationViewModel.swift` — VaccinationItem 로컬 모델, 신규/수정 분기
+- `VaccinationView.swift` — 접종 기록 목록 + 입력 시트 (다음 접종일, 알림 여부 포함)
+
+#### MedicationScreen (`Screens/Medication/`)
+- `MedicationKotlinViewModel.kt` (iosMain) — 알람 스케줄링을 Swift 콜백으로 위임하는 구조
+  - `loadData()`: 활성/전체 복용 목록 Flow 구독
+  - `saveMedication()`: DB 저장 + `onScheduleAlarms` / `onCancelAlarms` 콜백 위임
+  - `deleteMedication()` / `toggleActive()`: 알람 취소 콜백 포함
+- `MedicationNotificationManager.swift` — UNUserNotificationCenter 기반 알람 관리
+  - `requestAuthorization()`: 앱 최초 실행 시 권한 요청
+  - `scheduleAlarms()`: 매일 반복 알람 등록
+  - `cancelAlarms()`: 특정 알람 ID 취소
+- `MedicationViewModel.swift` — Medication/MedicationAlarm 로컬 모델 + 알람 연동
+- `MedicationView.swift` — 활성/비활성 탭, 복용 타입 뱃지, 알람 시간 목록, 입력 시트
+
+#### DiaryScreen (`Screens/Diary/`)
+- `DiaryKotlinViewModel.kt` (iosMain) — KDoc 주석 포함
+  - `loadData()`: 다이어리 목록 Flow (최신순)
+  - `saveDiary()` / `deleteDiary()`
+- `DiaryViewModel.swift` — DiaryItem / DiaryMoodSwift 로컬 모델
+- `DiaryView.swift` — 목록 카드 + FAB + 입력 시트
+  - DiaryInputSheet: 제목/내용/날짜/기분/사진(PhotosPicker) 입력
+  - `savePhotoToDocuments()`: 사진 Documents 폴더 저장 + EXIF 방향 보정
+
+#### iOSApp.swift / AppRoot.swift 업데이트
+- `iOSApp.swift`: `MedicationNotificationManager.shared.requestAuthorization()` 추가
+- `AppRoot.swift`: MainDrawerView / ProfileRegisterView 연결 완료
+
+---
+
 ## 2026-04-08
 
 ### iOS DB 초기화 문제 해결
