@@ -195,18 +195,8 @@ struct MainDrawerView: View {
             .environmentObject(drawerState)
 
         case .healthCheck:
-            NavigationStack {
-                PlaceholderView(title: "건강 체크리스트") {}
-                    .navigationTitle("건강 체크리스트")
-                    .navigationBarTitleDisplayMode(.large)
-                    .background(MyCatColors.background)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
-            }
-            .environmentObject(drawerState)
+            HealthCheckView()
+                .environmentObject(drawerState)
 
         case .vaccination:
             NavigationStack {
