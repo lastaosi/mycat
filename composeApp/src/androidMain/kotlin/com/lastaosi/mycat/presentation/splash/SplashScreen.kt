@@ -62,22 +62,43 @@ fun SplashScreen(
 
 }
 
+/**
+ * 스플래시 애니메이션 화면.
+ *
+ * ## 고양이 4마리 배치 및 애니메이션
+ *
+ * | 이미지 | 위치 기준점 | 애니메이션 |
+ * |-------|------------|-----------|
+ * | sit   | BottomCenter | 고정 (정적) |
+ * | roll  | Center + y(-120dp) | 고정 (정적) |
+ * | walk  | Center + y(+180px) | 좌우 왕복 |
+ * | run   | Center + (runOffsetX, runOffsetY) | 사각형 영역 내 랜덤 튕기기 |
+ *
+ * ## walk 애니메이션 (좌우 왕복)
+ * - walkOffsetX 는 -400f ~ 400f 범위를 2초 선형 이동
+ * - 목적지 도달 시 방향 전환(walkGoingRight 토글) + 80ms 대기 (끝에서 살짝 멈춤 효과)
+ * - scaleX: 오른쪽 이동 시 1f (정방향), 왼쪽 이동 시 -1f (좌우 반전)
+ *
+ * ## run 애니메이션 (랜덤 튕기기)
+ * - 매 프레임(16ms = ~60fps) 마다 (runDirX * 8f, runDirY * 8f) 씩 이동
+ * - |nextX| >= 380f 이면 x 방향 반전, |nextY| >= 700f 이면 y 방향 반전
+ * - x, y 를 동시에 이동시키되 x 는 별도 launch 로 병렬 실행해 프레임 지연 방지
+ * - scaleX 로 이동 방향에 따라 이미지 좌우 반전
+ */
 @Composable
 fun SplashContent() {
-    // 기존 SplashScreen UI 코드 전체 여기로 이동
-    // walkOffsetX, runOffsetX 등 애니메이션 코드 포함
-    // walk 좌우 왕복
+    // walk: 좌우 왕복 (초기 위치: 화면 왼쪽 바깥 -400f)
     val walkOffsetX = remember { Animatable(-400f) }
     var walkGoingRight by remember { mutableStateOf(true) }
 
-    // run 랜덤 튕기기
+    // run: 2D 랜덤 튕기기 (초기 위치: 중앙 0,0)
     val runOffsetX = remember { Animatable(0f) }
     val runOffsetY = remember { Animatable(0f) }
-    var runDirX by remember { mutableFloatStateOf(1f) }
-    var runDirY by remember { mutableFloatStateOf(1f) }
+    var runDirX by remember { mutableFloatStateOf(1f) }   // +1 = 오른쪽, -1 = 왼쪽
+    var runDirY by remember { mutableFloatStateOf(1f) }   // +1 = 아래쪽, -1 = 위쪽
     var runFacingRight by remember { mutableStateOf(true) }
 
-    // walk 애니메이션
+    // walk 좌우 왕복 루프
     LaunchedEffect(Unit) {
         while (true) {
             val target = if (walkGoingRight) 400f else -400f
@@ -86,22 +107,27 @@ fun SplashContent() {
                 animationSpec = tween(durationMillis = 2000, easing = LinearEasing)
             )
             walkGoingRight = !walkGoingRight
-            delay(80)
+            delay(80)  // 방향 전환 전 살짝 멈춤 효과
         }
     }
 
-    // run 랜덤 튕기기
+    // run 랜덤 튕기기 루프 (~60fps, 16ms 간격)
     LaunchedEffect(Unit) {
         while (true) {
             val nextX = runOffsetX.value + runDirX * 8f
             val nextY = runOffsetY.value + runDirY * 8f
+
+            // 수평 경계(±380f) 도달 시 x 방향 반전 + 이미지 좌우 반전
             if (kotlin.math.abs(nextX) >= 380f) {
                 runDirX = -runDirX
                 runFacingRight = runDirX > 0
             }
+            // 수직 경계(±700f) 도달 시 y 방향 반전
             if (kotlin.math.abs(nextY) >= 700f) {
                 runDirY = -runDirY
             }
+
+            // x, y 를 병렬로 이동시켜 프레임 지연 없이 대각선 이동
             launch {
                 runOffsetX.animateTo(
                     targetValue = runOffsetX.value + runDirX * 8f,
@@ -114,12 +140,13 @@ fun SplashContent() {
             )
         }
     }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(SplashBackground)
     ) {
-        // 1. sit — 하단 고정
+        // 1. sit — 하단 중앙 고정
         Image(
             painter = painterResource(id = R.drawable.byeori_sit),
             contentDescription = "sit",
@@ -129,7 +156,7 @@ fun SplashContent() {
                 .padding(bottom = 60.dp)
         )
 
-        // 2. roll — 중앙에서 위로
+        // 2. roll — 화면 중앙에서 120dp 위에 고정
         Image(
             painter = painterResource(id = R.drawable.byeori_roll),
             contentDescription = "roll",
@@ -139,7 +166,7 @@ fun SplashContent() {
                 .offset(y = (-120).dp)
         )
 
-        // 3. walk — 좌우 왕복
+        // 3. walk — 중앙 기준 y+180px 고정 높이에서 좌우 왕복
         Image(
             painter = painterResource(id = R.drawable.byeori_walk),
             contentDescription = "walk",
@@ -147,10 +174,10 @@ fun SplashContent() {
                 .size(130.dp)
                 .align(Alignment.Center)
                 .offset { IntOffset(x = walkOffsetX.value.toInt(), y = 180) }
-                .scale(scaleX = if (walkGoingRight) 1f else -1f, scaleY = 1f)
+                .scale(scaleX = if (walkGoingRight) 1f else -1f, scaleY = 1f)  // 방향에 따라 좌우 반전
         )
 
-        // 4. run — 랜덤 튕기기
+        // 4. run — 중앙 기준으로 2D 자유 이동 (사각형 경계 내 튕기기)
         Image(
             painter = painterResource(id = R.drawable.byeori_run),
             contentDescription = "run",
@@ -163,7 +190,7 @@ fun SplashContent() {
                         y = runOffsetY.value.toInt()
                     )
                 }
-                .scale(scaleX = if (runFacingRight) 1f else -1f, scaleY = 1f)
+                .scale(scaleX = if (runFacingRight) 1f else -1f, scaleY = 1f)  // 이동 방향에 따라 좌우 반전
         )
 
         // 5. 로고 텍스트
@@ -177,7 +204,7 @@ fun SplashContent() {
                 .padding(top = 140.dp)
         )
 
-        // 6. 로딩 텍스트
+        // 6. 로딩 안내 텍스트
         Text(
             text = "초기 데이터를 생성중입니다..",
             fontSize = 13.sp,

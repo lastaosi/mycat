@@ -22,6 +22,25 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * 근처 동물병원 화면 ViewModel.
+ *
+ * ## 데이터 흐름
+ * 1. [loadNearbyVets] 호출
+ * 2. [getCurrentLocation]: FusedLocationProviderClient 로 현재 GPS 좌표 획득
+ *    (suspendCancellableCoroutine 으로 콜백 → suspend 변환)
+ * 3. [searchNearbyVets]: Google Places SearchNearby API 호출 (반경 2km, 최대 20개)
+ * 4. 결과를 [VetPlace] 로 매핑 후 [calculateDistance](Haversine 공식)로 거리 계산 → 거리순 정렬
+ *
+ * ## @SuppressLint("MissingPermission")
+ * 위치 권한(ACCESS_FINE_LOCATION)은 NearbyVetScreen 에서 PermissionLauncher 로 사전 확인 후
+ * 권한이 있을 때만 이 ViewModel 메서드를 호출한다.
+ * Lint 는 ViewModel 레이어에서 권한 확인 여부를 알 수 없으므로 억제한다.
+ *
+ * ## Haversine 공식 ([calculateDistance])
+ * 구면 삼각법 기반 두 위경도 간 거리 계산 공식.
+ * 지구 반지름(R=6,371,000m) 을 사용해 미터(m) 단위로 반환한다.
+ */
 class NearbyVetViewModel(
     application: Application
 ) : AndroidViewModel(application) {
@@ -31,6 +50,7 @@ class NearbyVetViewModel(
     private val _uiState = MutableStateFlow(NearbyVetUiState())
     val uiState: StateFlow<NearbyVetUiState> = _uiState
 
+    // lazy 초기화: Places, LocationServices 는 앱 컨텍스트가 필요하므로 생성자에서 바로 만들지 않음
     private val fusedLocationClient by lazy {
         LocationServices.getFusedLocationProviderClient(context)
     }
@@ -61,6 +81,15 @@ class NearbyVetViewModel(
         }
     }
 
+    /**
+     * 현재 GPS 위치를 suspend 함수로 반환한다.
+     *
+     * FusedLocationProviderClient 는 콜백 기반 API 이므로
+     * [suspendCancellableCoroutine] 으로 코루틴 세계로 브릿지한다.
+     * - onSuccess: cont.resume → 정상 반환
+     * - onFailure: cont.resumeWithException → 상위 catch 로 전파
+     * - 코루틴 취소 시: invokeOnCancellation 에서 CancellationTokenSource.cancel() 호출
+     */
     @SuppressLint("MissingPermission")
     private suspend fun getCurrentLocation(): LatLng =
         suspendCancellableCoroutine { cont ->
@@ -77,6 +106,7 @@ class NearbyVetViewModel(
             }.addOnFailureListener { e ->
                 cont.resumeWithException(e)
             }
+            // 코루틴이 취소되면 위치 요청도 취소
             cont.invokeOnCancellation { cts.cancel() }
         }
 
@@ -150,9 +180,19 @@ class NearbyVetViewModel(
         loadNearbyVets()
     }
 
-    // Haversine 공식으로 두 좌표 사이 거리 계산 (m)
+    /**
+     * Haversine 공식으로 두 위경도 좌표 간 거리를 계산한다 (단위: 미터).
+     *
+     * Haversine 공식:
+     *   a = sin²(Δlat/2) + cos(lat1)·cos(lat2)·sin²(Δlng/2)
+     *   c = 2·atan2(√a, √(1−a))
+     *   d = R · c   (R = 지구 반지름 6,371,000m)
+     *
+     * 평면 좌표 기반 유클리드 거리보다 정확하며,
+     * 수 km 수준의 거리에서도 오차가 작다.
+     */
     private fun calculateDistance(from: LatLng, to: LatLng): Float {
-        val r = 6371000f
+        val r = 6371000f  // 지구 반지름 (m)
         val lat1 = Math.toRadians(from.latitude)
         val lat2 = Math.toRadians(to.latitude)
         val dLat = Math.toRadians(to.latitude - from.latitude)

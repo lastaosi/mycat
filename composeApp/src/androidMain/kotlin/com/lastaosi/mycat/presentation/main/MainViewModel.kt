@@ -20,6 +20,18 @@ import kotlin.time.Clock
  * 초기화 시 대표 고양이를 로드하고, 해당 고양이의 월령에 맞는
  * 오늘의 급여량·체중 범위(품종 가이드), 다가오는 예방접종/투약 알람,
  * 최근 일기 미리보기를 [MainUiState]로 관리한다.
+ *
+ * ## 데이터 로드 구조
+ * [loadData]는 `getAllCats()` Flow 를 구독해 대표 고양이가 바뀔 때마다 자동 갱신된다.
+ * 대표 고양이 확정 후 부가 데이터(체중/예방접종/약/일기/건강검진/팁)는
+ * 별도 `launch` 로 병렬 로드한다.
+ *
+ * ## D-Day 계산 ([calculateDDay])
+ * `(nextDueAt - now) / 86_400_000` 으로 일(day) 단위 차이를 구한다.
+ * - 양수: 남은 일수 → "D-N"
+ * - 0   : 당일 → "오늘"
+ * - 음수: 기한 초과 → "기한 지남"
+ * isUrgent = dDay in 0..3 (당일~3일 이내를 긴급으로 표시)
  */
 class MainViewModel(
     private val useCase: MainUseCase
@@ -57,20 +69,18 @@ class MainViewModel(
 
     private fun loadData() {
         viewModelScope.launch {
+            // getAllCats Flow: 대표 고양이가 바뀔 때마다 전체 재로드
             useCase.getAllCats()
                 .collect { cats ->
                     val representative = cats.firstOrNull { it.isRepresentative }
                         ?: cats.firstOrNull()
 
-                    _uiState.update {
-                        it.copy(
-                            cat = representative,
-                            allCats = cats  // 추가
-                        )
-                    }
+                    _uiState.update { it.copy(cat = representative, allCats = cats) }
                     representative ?: return@collect
 
                     val ageMonth = useCase.calculateAgeMonth(representative.birthDate)
+
+                    // 품종이 등록된 경우에만 급여 가이드 조회
                     representative.breedId?.let { breedId ->
                         val guide = useCase.getBreedGuide(breedId, ageMonth)
                         _uiState.update {
@@ -83,7 +93,8 @@ class MainViewModel(
                             )
                         }
                     }
-                    // 체중 최신값 추가
+
+                    // 체중 히스토리 Flow 구독 — 새 기록 추가 시 자동 갱신
                     launch {
                         useCase.getLatestWeight(representative.id)
                             .collect { records ->
@@ -91,8 +102,8 @@ class MainViewModel(
                                 _uiState.update { it.copy(latestWeightG = latest?.weightG) }
                             }
                     }
-                    // 다가오는 예방접종 로드
-                    // 추가 데이터 로드
+
+                    // 부가 데이터는 별도 launch 로 병렬 로드 (UI 블로킹 없음)
                     loadUpcomingVaccinations()
                     loadUpcomingMedications(representative.id)
                     loadRecentDiaries(representative.id)
@@ -122,9 +133,10 @@ class MainViewModel(
         }
     }
 
+    /** 예정된 예방접종을 로드해 D-Day 레이블로 변환한다. */
     private fun loadUpcomingVaccinations() {
         viewModelScope.launch {
-            // 현재 시각부터 30일 이내 예방접종 조회
+            // fromTimestamp = now → 현재 이후 예정된 접종만 조회
             val now = Clock.System.now().toEpochMilliseconds()
             val records = useCase.getUpcomingVaccinations(fromTimestamp = now)
             val alarms = records.map { record ->
@@ -132,16 +144,16 @@ class MainViewModel(
                 UpcomingAlarm(
                     label = record.title,
                     dateLabel = formatDDay(dDay),
-                    isUrgent = dDay in 0..3
+                    isUrgent = dDay in 0..3  // 당일~3일 이내는 긴급 표시
                 )
             }
             _uiState.update { it.copy(upcomingVaccinations = alarms) }
         }
     }
 
+    /** 최근 일기 2개를 로드해 미리보기용 [DiaryPreview] 로 변환한다. */
     private fun loadRecentDiaries(catId: Long) {
         viewModelScope.launch {
-            // getDiariesByCat Flow에서 최근 2개만 사용
             useCase.getDiaries(catId)
                 .collect { diaries ->
                     val previews = diaries
@@ -151,7 +163,7 @@ class MainViewModel(
                             DiaryPreview(
                                 id = diary.id,
                                 title = diary.title ?: "제목 없음",
-                                content = diary.content.take(50),
+                                content = diary.content.take(50),  // 50자 미리보기
                                 mood = diary.mood?.toEmoji(),
                                 dateLabel = formatDate(diary.createdAt)
                             )
@@ -161,14 +173,16 @@ class MainViewModel(
         }
     }
 
-    // 약 복용 알람 (MedicationAlarm 테이블에서)
+    /**
+     * 활성 복용 약 목록을 로드한다.
+     * 개별 알람 시각은 MedicationAlarm 테이블에 있으므로
+     * 메인 화면에서는 복용 타입 레이블만 표시한다.
+     */
     private fun loadUpcomingMedications(catId: Long) {
         viewModelScope.launch {
             useCase.getMedications.active(catId)
                 .collect { medications ->
                     val alarms = medications.map { med ->
-                        // 알람 시간은 MedicationAlarm 테이블에 있어서
-                        // 여기선 복용 타입으로 표시
                         val typeLabel = when (med.medicationType) {
                             MedicationType.ONCE     -> "1회"
                             MedicationType.DAILY    -> "매일"
@@ -186,7 +200,11 @@ class MainViewModel(
         }
     }
 
-    // D-Day 계산
+    /**
+     * D-Day 를 계산한다.
+     * 밀리초 차이를 하루(86_400_000ms)로 나눈 정수값.
+     * 양수 = 남은 일수, 0 = 당일, 음수 = 기한 초과.
+     */
     private fun calculateDDay(dateMillis: Long): Int {
         val now = Clock.System.now().toEpochMilliseconds()
         val diff = dateMillis - now
@@ -199,12 +217,14 @@ class MainViewModel(
         else      -> "D-$dDay"
     }
 
+    /** epoch ms → "yyyy.MM.dd" 형식 (kotlinx-datetime 사용, 로컬 TimeZone 기준) */
     private fun formatDate(millis: Long): String {
         val instant = Instant.fromEpochMilliseconds(millis)
         val local = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "${local.year}.${local.monthNumber.toString().padStart(2,'0')}.${local.dayOfMonth.toString().padStart(2,'0')}"
     }
-    // DiaryMood → 이모지 변환 확장함수
+
+    /** [DiaryMood] enum → 이모지 문자열 변환 확장함수 */
     private fun DiaryMood.toEmoji(): String = when (this) {
         DiaryMood.HAPPY   -> "😸"
         DiaryMood.NORMAL  -> "😐"
@@ -212,5 +232,4 @@ class MainViewModel(
         DiaryMood.SICK    -> "🤒"
         DiaryMood.PLAYFUL -> "😺"
     }
-
 }

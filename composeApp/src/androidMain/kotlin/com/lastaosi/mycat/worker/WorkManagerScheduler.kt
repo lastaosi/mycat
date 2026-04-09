@@ -5,6 +5,21 @@ import androidx.work.*
 import java.util.concurrent.TimeUnit
 import java.util.Calendar
 
+/**
+ * WorkManager 기반 백그라운드 알림 스케줄러.
+ *
+ * ## 등록하는 작업
+ * - [scheduleVaccinationReminder]: [VaccinationReminderWorker] 매일 오전 9시 실행
+ * - [scheduleMedicationReminder]: [MedicationReminderWorker] 매 15분마다 실행 (보조 알람)
+ *
+ * ## ExistingPeriodicWorkPolicy.UPDATE
+ * 앱 재시작 시 동일 이름으로 enqueue 해도 기존 작업을 덮어쓰지 않고
+ * 초기 딜레이만 갱신해 중복 실행을 방지한다.
+ *
+ * ## calculateDelayUntil
+ * Calendar 를 이용해 "오늘 target 시각까지 남은 밀리초"를 계산한다.
+ * target 이 이미 지난 시각이면 다음날로 자동 이월한다.
+ */
 object WorkManagerScheduler {
 
     private const val VACCINATION_WORK_NAME = "vaccination_reminder"

@@ -132,6 +132,19 @@ class MedicationRepositoryImpl(
             .mapToList(Dispatchers.IO)
             .map { list -> list.map { it.toDomain() } }
 
+    // ──────────────────────────────────────────────────────────────────
+    // DB → Domain 매퍼
+    // SQLDelight 가 생성한 DB 타입(Long 기반)을 도메인 모델로 변환한다.
+    // ──────────────────────────────────────────────────────────────────
+
+    /**
+     * SQLDelight Medication DB 타입 → [Medication] 도메인 모델 변환.
+     *
+     * - medicationType: DB 에 String 으로 저장된 enum 이름 → [MedicationType] 변환.
+     *   runCatching 으로 알 수 없는 값이 들어와도 [MedicationType.ONCE] 로 폴백.
+     * - isActive: SQLite 에는 Boolean 없음 → 1L=true, 0L=false 로 저장.
+     * - intervalDays: Long? → Int? 변환 (SQLite 는 INTEGER, 도메인은 Int).
+     */
     private fun com.lastaosi.mycat.db.Medication.toDomain() = Medication(
         id = id,
         catId = catId,
@@ -146,6 +159,7 @@ class MedicationRepositoryImpl(
         createdAt = createdAt
     )
 
+    /** SQLDelight Medication_alarm DB 타입 → [MedicationAlarm] 도메인 모델 변환. */
     private fun com.lastaosi.mycat.db.Medication_alarm.toDomain() = MedicationAlarm(
         id = id,
         medicationId = medicationId,
@@ -153,6 +167,7 @@ class MedicationRepositoryImpl(
         isEnabled = isEnabled == 1L
     )
 
+    /** SQLDelight Medication_log DB 타입 → [MedicationLog] 도메인 모델 변환. */
     private fun com.lastaosi.mycat.db.Medication_log.toDomain() = MedicationLog(
         id = id,
         medicationId = medicationId,

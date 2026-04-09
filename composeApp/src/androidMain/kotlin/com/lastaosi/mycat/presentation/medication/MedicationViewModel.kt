@@ -18,6 +18,25 @@ import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+/**
+ * 약 복용 관리 화면 ViewModel.
+ *
+ * ## 알람 3중 시스템과의 연동
+ * 약을 저장(추가/수정)/삭제/토글할 때 DB 변경과 함께 AlarmManager 알람도 함께 관리한다.
+ *
+ * | 작업 | DB | AlarmManager |
+ * |------|-----|--------------|
+ * | 추가  | insert | scheduleAlarm (알람 시간별) |
+ * | 수정  | update | cancelAlarm(기존) → scheduleAlarm(신규) |
+ * | 삭제  | delete | cancelAlarm |
+ * | 비활성 토글 | update(isActive=false) | cancelAlarm |
+ * | 활성 토글   | update(isActive=true)  | scheduleAlarm (재등록) |
+ *
+ * ## 의존성
+ * - [MedicationUseCase]: 고양이/약 조회 통합 UseCaes
+ * - [MedicationRepository]: 알람 CRUD (insertAlarm, deleteAlarmsByMedication 등) 직접 접근
+ * - [MedicationAlarmScheduler]: AlarmManager 알람 등록/취소
+ */
 class MedicationViewModel(
     application: Application,
     private val useCase: MedicationUseCase,
@@ -77,6 +96,19 @@ class MedicationViewModel(
 
     }
 
+    /**
+     * 약 저장 (추가 / 수정 통합).
+     *
+     * ## 수정 모드 흐름
+     * 1. DB 약 정보 update
+     * 2. 기존 알람 전부 AlarmManager 취소 + DB 삭제 (기존 alarmTimes 완전 교체)
+     * 3. 새 alarmTimes 를 DB 에 insert 후 AlarmManager 등록
+     *
+     * ## 추가 모드 흐름
+     * 1. DB 에 Medication insert → 생성된 medicationId 수령
+     * 2. alarmTimes 를 DB 에 insert → 생성된 alarmId 수령
+     * 3. (medicationId, alarmId) 쌍으로 AlarmManager 등록
+     */
     @OptIn(ExperimentalTime::class)
     private fun onSave(
         name: String,
@@ -89,12 +121,12 @@ class MedicationViewModel(
         alarmTimes: List<String> = emptyList()
     ) {
         viewModelScope.launch {
-            // 대표 고양이 이름 (알람 알림용)
+            // 알람 알림 표시용 고양이 이름
             val cat = useCase.getCatById(_uiState.value.catId)
 
             val editing = _uiState.value.editingMedication
             if (editing != null) {
-                // 수정 모드
+                // 수정 모드: DB 업데이트 후 알람 전체 교체
                 medicationRepository.update(
                     editing.copy(
                         name = name,
@@ -107,7 +139,7 @@ class MedicationViewModel(
                     )
                 )
 
-                // 기존 알람 전부 취소 + 삭제
+                // 기존 알람 전부 취소 + DB 삭제 (알람 시간이 변경됐을 수 있으므로 전체 교체)
                 medicationRepository.getAlarmsByMedication(editing.id)
                     .first()
                     .forEach { alarm ->
@@ -119,7 +151,7 @@ class MedicationViewModel(
                     }
                 medicationRepository.deleteAlarmsByMedication(editing.id)
 
-                // 새 알람 등록
+                // 새 알람 시간별로 DB 삽입 → 생성된 alarmId 로 AlarmManager 등록
                 alarmTimes.forEach { alarmTime ->
                     val alarmId = medicationRepository.insertAlarm(
                         MedicationAlarm(
@@ -138,7 +170,7 @@ class MedicationViewModel(
                     )
                 }
             } else {
-                // 추가 모드
+                // 추가 모드: DB insert 후 반환된 medicationId 로 알람 등록
                 val medicationId = medicationRepository.insert(
                     Medication(
                         catId = _uiState.value.catId,
@@ -178,9 +210,13 @@ class MedicationViewModel(
         }
     }
 
+    /**
+     * 약 삭제.
+     * DB 삭제 전에 먼저 AlarmManager 알람을 취소해야 한다.
+     * 순서: AlarmManager 취소 → DB 알람 삭제 → DB 약 삭제
+     */
     private fun onDelete(id: Long) {
         viewModelScope.launch {
-            // 알람 취소 후 삭제
             medicationRepository.getAlarmsByMedication(id)
                 .first()
                 .forEach { alarm ->
@@ -195,13 +231,22 @@ class MedicationViewModel(
         }
     }
 
+    /**
+     * 복용 중 / 완료 상태 토글.
+     *
+     * isActive 를 반전시키면서 AlarmManager 알람도 함께 제어한다.
+     * - 활성 → 비활성 : 모든 알람 취소 (복용 완료 처리)
+     * - 비활성 → 활성 : isEnabled 인 알람만 재등록 (복용 재시작)
+     *
+     * 주의: 파라미터 [medication] 은 토글 *전* 상태 객체다.
+     * `medication.isActive == true` 이면 "현재 활성" → 비활성으로 바꾸는 의도.
+     */
     fun onToggleActive(medication: Medication) {
         viewModelScope.launch {
             medicationRepository.update(medication.copy(isActive = !medication.isActive))
 
-            // 비활성화 시 알람 취소, 활성화 시 알람 재등록
             if (medication.isActive) {
-                // 현재 활성 → 비활성으로 변경 → 알람 취소
+                // 현재 활성 → 비활성으로 변경: 알람 전체 취소
                 medicationRepository.getAlarmsByMedication(medication.id)
                     .first()
                     .forEach { alarm ->
@@ -212,7 +257,7 @@ class MedicationViewModel(
                         )
                     }
             } else {
-                // 현재 비활성 → 활성으로 변경 → 알람 재등록
+                // 현재 비활성 → 활성으로 변경: isEnabled 인 알람만 재등록
                 val cat = useCase.getCatById(_uiState.value.catId)
                 medicationRepository.getAlarmsByMedication(medication.id)
                     .first()
