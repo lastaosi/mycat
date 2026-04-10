@@ -208,18 +208,8 @@ struct MainDrawerView: View {
             .environmentObject(drawerState)
 
         case .vetMap:
-            NavigationStack {
-                PlaceholderView(title: "근처 동물병원") {}
-                    .navigationTitle("근처 동물병원")
-                    .navigationBarTitleDisplayMode(.large)
-                    .background(MyCatColors.background)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
-            }
-            .environmentObject(drawerState)
+            NearbyVetView()
+                .environmentObject(drawerState)
         }
     }
 }
