@@ -241,7 +241,7 @@ private struct DiaryPhotoView: View {
 
     var body: some View {
         let url = URL(fileURLWithPath: photoPath)
-        if let uiImage = UIImage(contentsOfFile: url.path) {
+        if let uiImage = UIImage(contentsOfFile: resolvePhotoPath(photoPath)) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
@@ -528,7 +528,7 @@ struct DiaryInputSheet: View {
 
         do {
             try jpegData.write(to: fileURL)
-            return fileURL.path
+            return fileName
         } catch {
             return nil
         }
@@ -581,7 +581,7 @@ private struct DiaryPhotoEditView: View {
 
     var body: some View {
         let url = URL(fileURLWithPath: photoPath)
-        if let uiImage = UIImage(contentsOfFile: url.path) {
+        if let uiImage = UIImage(contentsOfFile: resolvePhotoPath(photoPath)) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()

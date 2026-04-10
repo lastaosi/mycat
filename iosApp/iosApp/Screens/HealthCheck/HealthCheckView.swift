@@ -120,7 +120,7 @@ private struct HealthCheckTabChip: View {
                     .font(.system(size: 13))
                 Text(tab.label)
                     .font(.system(size: 13, weight: isSelected ? .bold : .regular))
-                    .foregroundColor(isSelected ? MyCatColors.primary : MyCatColors.textSecondary)
+                    .foregroundColor(isSelected ? MyCatColors.primary : MyCatColors.secondary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
@@ -198,7 +198,7 @@ private struct HealthCheckMonthHeader: View {
     private var textColor: Color {
         if isCurrent { return MyCatColors.onPrimary }
         if isPast    { return MyCatColors.textMuted }
-        return MyCatColors.textSecondary
+        return MyCatColors.secondary
     }
 
     var body: some View {
@@ -283,7 +283,7 @@ private struct HealthCheckItemCard: View {
                 if !item.description.isEmpty {
                     Text(item.description)
                         .font(.system(size: 12))
-                        .foregroundColor(MyCatColors.textSecondary)
+                        .foregroundColor(MyCatColors.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

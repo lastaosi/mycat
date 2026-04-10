@@ -27,3 +27,16 @@ private extension Color {
         self.init(red: r / 255, green: g / 255, blue: b / 255, opacity: a)
     }
 }
+
+func resolvePhotoPath(_ fileName: String) -> String {
+    // 이미 절대 경로면 그대로 반환 (하위 호환)
+    if fileName.hasPrefix("/") { return fileName }
+    let documents = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+    )[0]
+    let fullPath = documents.appendingPathComponent(fileName).path
+    print("resolvePhotoPath: \(fileName) → \(fullPath)")
+      print("파일 존재: \(FileManager.default.fileExists(atPath: fullPath))")
+    return documents.appendingPathComponent(fileName).path
+}

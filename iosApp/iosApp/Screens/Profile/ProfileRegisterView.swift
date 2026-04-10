@@ -21,7 +21,7 @@ struct ProfileRegisterView: View {
                                 .fill(MyCatColors.surface)
                                 .frame(width: 120, height: 120)
                             if let photoPath = viewModel.photoPath,
-                               let uiImage = UIImage(contentsOfFile: photoPath) {
+                               let uiImage = UIImage(contentsOfFile: resolvePhotoPath(photoPath)) {
                                 Image(uiImage: uiImage)
                                     .resizable()
                                     .scaledToFill()
@@ -53,7 +53,7 @@ struct ProfileRegisterView: View {
                     // Gemini 품종 인식 버튼
                     Button(action: {
                         if let photoPath = viewModel.photoPath,
-                           let data = try? Data(contentsOf: URL(fileURLWithPath: photoPath)) {
+                           let data = try? Data(contentsOf: URL(fileURLWithPath: resolvePhotoPath(photoPath))) {
                             viewModel.recognizeBreed(imageData: data)
                         }
                     }) {
@@ -218,13 +218,12 @@ struct ProfileRegisterView: View {
         }
     }
 
-    // 이미지 Documents에 저장
     private func saveImageToDocuments(data: Data) -> String? {
         let fileName = "cat_photo_\(Date().timeIntervalSince1970).jpg"
         let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(fileName)
         try? data.write(to: url)
-        return url.path
+        return fileName  // 절대 경로 대신 파일명만 반환
     }
     
 }

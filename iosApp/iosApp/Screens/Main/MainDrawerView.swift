@@ -292,7 +292,7 @@ struct DrawerHeaderView: View {
                         .frame(width: 64, height: 64)
 
                     if let photoPath = drawerVM.representativeCat?.photoPath,
-                       let uiImage = UIImage(contentsOfFile: photoPath) {
+                       let uiImage = UIImage(contentsOfFile: resolvePhotoPath(photoPath)) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFill()
