@@ -25,7 +25,7 @@ struct MedicationView: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
                 // ─── TopBar ────────────────────────────────────────────────
-                MedicationTopBar(catName: viewModel.catName, onBack: handleBack)
+                MedicationTopBar(catName: viewModel.catName)
 
                 // ─── 리스트 / 빈 상태 ────────────────────────────────────────
                 let hasData = !viewModel.activeMedications.isEmpty || !viewModel.inactiveMedications.isEmpty
@@ -82,16 +82,12 @@ struct MedicationView: View {
 
 private struct MedicationTopBar: View {
     let catName: String
-    let onBack: () -> Void
+    @EnvironmentObject var drawerState: DrawerState
 
     var body: some View {
         HStack(spacing: 4) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(MyCatColors.onPrimary)
-                    .frame(width: 44, height: 44)
-            }
+            DrawerHamburgerButton(tint: MyCatColors.onPrimary)
+                .environmentObject(drawerState)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("약 복용 관리")

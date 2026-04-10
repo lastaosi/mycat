@@ -26,7 +26,7 @@ struct DiaryView: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
                 // ─── TopBar ────────────────────────────────────────────────
-                DiaryTopBar(catName: viewModel.catName, onBack: handleBack)
+                DiaryTopBar(catName: viewModel.catName)
 
                 // ─── 리스트 / 빈 상태 ────────────────────────────────────────
                 if viewModel.diaries.isEmpty {
@@ -79,16 +79,12 @@ struct DiaryView: View {
 
 private struct DiaryTopBar: View {
     let catName: String
-    let onBack: () -> Void
+    @EnvironmentObject var drawerState: DrawerState
 
     var body: some View {
         HStack(spacing: 4) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(MyCatColors.onPrimary)
-                    .frame(width: 44, height: 44)
-            }
+            DrawerHamburgerButton(tint: MyCatColors.onPrimary)
+                .environmentObject(drawerState)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("다이어리")

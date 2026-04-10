@@ -28,10 +28,7 @@ struct WeightView: View {
         ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
                 // ─── TopBar ───────────────────────────────────────────────
-                WeightTopBar(
-                    catName: viewModel.catName,
-                    onBack: handleBack
-                )
+                WeightTopBar(catName: viewModel.catName)
 
                 // ─── Tab Row ──────────────────────────────────────────────
                 WeightTabRow(selectedTab: $viewModel.selectedTab)
@@ -84,16 +81,12 @@ struct WeightView: View {
 
 private struct WeightTopBar: View {
     let catName: String
-    let onBack: () -> Void
+    @EnvironmentObject var drawerState: DrawerState
 
     var body: some View {
         HStack(spacing: 4) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(MyCatColors.onPrimary)
-                    .frame(width: 44, height: 44)
-            }
+            DrawerHamburgerButton(tint: MyCatColors.onPrimary)
+                .environmentObject(drawerState)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("체중 기록")

@@ -68,6 +68,7 @@ enum DrawerMenuItem: CaseIterable, Hashable {
 // ═══════════════════════════════════════════════════════════════════
 struct DrawerHamburgerButton: View {
     @EnvironmentObject var drawerState: DrawerState
+    var tint: Color = MyCatColors.primary
 
     var body: some View {
         Button {
@@ -75,7 +76,8 @@ struct DrawerHamburgerButton: View {
         } label: {
             Image(systemName: "line.3.horizontal")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(MyCatColors.primary)
+                .foregroundColor(tint)
+                .frame(width: 44, height: 44)
         }
     }
 }
@@ -189,7 +191,7 @@ struct MainDrawerView: View {
 
         case .weight:
             NavigationStack {
-                WeightView(catId: catId, onBack: { drawerState.goHome() })
+                WeightView(catId: catId)
             }
             .environmentObject(drawerState)
 
@@ -199,19 +201,19 @@ struct MainDrawerView: View {
 
         case .vaccination:
             NavigationStack {
-                VaccinationView(catId: catId, onBack: { drawerState.goHome() })
+                VaccinationView(catId: catId)
             }
             .environmentObject(drawerState)
 
         case .medication:
             NavigationStack {
-                MedicationView(catId: catId, onBack: { drawerState.goHome() })
+                MedicationView(catId: catId)
             }
             .environmentObject(drawerState)
 
         case .diary:
             NavigationStack {
-                DiaryView(catId: catId, onBack: { drawerState.goHome() })
+                DiaryView(catId: catId)
             }
             .environmentObject(drawerState)
 
