@@ -6,6 +6,11 @@ import ComposeApp
 // ═══════════════════════════════════════════════════════════════════
 class DrawerState: ObservableObject {
     @Published var isOpen: Bool = false
+    @Published var selectedItem: DrawerMenuItem = .home  // 여기로 이동
+
+       func goHome() {
+           selectedItem = .home
+       }
 
     func toggle() {
         withAnimation(.easeInOut(duration: 0.28)) { isOpen.toggle() }
@@ -82,7 +87,6 @@ struct MainDrawerView: View {
 
     @StateObject private var drawerVM    = MainDrawerViewModel()
     @StateObject private var drawerState = DrawerState()
-    @State private var selectedItem: DrawerMenuItem = .home
     @State private var showProfileRegister = false
     @State private var showProfileEdit     = false
 
@@ -109,9 +113,9 @@ struct MainDrawerView: View {
             // ── 3. 드로어 패널 ─────────────────────────────────────
             DrawerPanelView(
                 drawerVM:       drawerVM,
-                selectedItem:   selectedItem,
+                selectedItem:   drawerState.selectedItem,
                 onItemSelected: { item in
-                    selectedItem = item
+                    drawerState.selectedItem = item
                     drawerState.close()
                 },
                 onAddCat: {
@@ -165,7 +169,7 @@ struct MainDrawerView: View {
     @ViewBuilder
     private var mainContent: some View {
         let catId = drawerVM.currentCatId
-        switch selectedItem {
+        switch drawerState.selectedItem {
         case .home:
             HomeView()
 
@@ -185,12 +189,7 @@ struct MainDrawerView: View {
 
         case .weight:
             NavigationStack {
-                WeightView(catId: catId)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
+                WeightView(catId: catId, onBack: { drawerState.goHome() })
             }
             .environmentObject(drawerState)
 
@@ -200,34 +199,19 @@ struct MainDrawerView: View {
 
         case .vaccination:
             NavigationStack {
-                VaccinationView(catId: catId)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
+                VaccinationView(catId: catId, onBack: { drawerState.goHome() })
             }
             .environmentObject(drawerState)
 
         case .medication:
             NavigationStack {
-                MedicationView(catId: catId)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
+                MedicationView(catId: catId, onBack: { drawerState.goHome() })
             }
             .environmentObject(drawerState)
 
         case .diary:
             NavigationStack {
-                DiaryView(catId: catId)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
+                DiaryView(catId: catId, onBack: { drawerState.goHome() })
             }
             .environmentObject(drawerState)
 
