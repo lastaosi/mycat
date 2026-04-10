@@ -7,6 +7,7 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
+            VStack(spacing: 0) {
             ScrollView {
                 VStack(spacing: 12) {
                     // 오늘의 케어 가이드 카드
@@ -62,6 +63,13 @@ struct HomeView: View {
                 .padding(.vertical, 12)
             }
             .background(MyCatColors.background)
+
+            // ─── 하단 배너 광고 ──────────────────────────────────
+            BannerAdView()
+                .frame(width: 320, height: 50)
+                .frame(maxWidth: .infinity)
+                .background(MyCatColors.surface)
+            } // VStack end
             .navigationTitle("MY Cat")
             .navigationBarTitleDisplayMode(.large)
             // ─── 햄버거 버튼 (MainDrawerView 가 DrawerState 를 주입) ──
