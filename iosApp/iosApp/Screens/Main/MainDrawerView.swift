@@ -176,18 +176,8 @@ struct MainDrawerView: View {
             HomeView()
 
         case .careGuide:
-            NavigationStack {
-                PlaceholderView(title: "케어 가이드") {}
-                    .navigationTitle("케어 가이드")
-                    .navigationBarTitleDisplayMode(.large)
-                    .background(MyCatColors.background)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            DrawerHamburgerButton()
-                        }
-                    }
-            }
-            .environmentObject(drawerState)
+            CareGuideView()
+                .environmentObject(drawerState)
 
         case .weight:
             NavigationStack {
