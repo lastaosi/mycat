@@ -1,5 +1,74 @@
 # MyCat 작업 일지
 
+## 2026-04-10
+
+### iOS 화면 구현 — HealthCheckView / CareGuideView / NearbyVetView
+
+#### HealthCheckView (`Screens/HealthCheck/`)
+- `HealthCheckKotlinViewModel.kt` (iosMain) — 대표 고양이 자동 로드, Flow → callback 브릿지
+  - `loadData(onCatLoaded, onItemsLoaded)`: getRepresentativeCat + calculateAgeMonth + getHealthCheckList Flow 구독
+- `HealthCheckViewModel.swift` — HealthCheckItem / HealthItemTypeSwift / HealthCheckTab 로컬 모델
+  - `filteredItems`: selectedTab 기준 필터 computed property
+  - `groupedItems`: 월령별 그룹화 튜플 배열 computed property
+- `HealthCheckView.swift` — Android HealthCheckScreen 대응
+  - 4탭 가로 스크롤 필터 바 (전체 / 예방접종 / 건강검진 / 수술처치)
+  - 월령 헤더 3단계 스타일: 지난 달=회색, 현재 달=primary+"← 현재" 배지, 미래 달=연베이지
+  - 아이템 카드: 타입별 파스텔 아이콘 원 + 제목 + 설명 + "권장" 배지
+
+#### CareGuideView (`Screens/CareGuide/`)
+- `CareGuideKotlinViewModel.kt` (iosMain) — breedId 체크 후 onNoBreed/onLoaded 콜백 분기
+- `CareGuideViewModel.swift` — BreedMonthlyGuideItem 로컬 모델
+  - `weightMinKg` / `weightMaxKg`: g → kg 변환 computed
+  - `monthLabel`: "N개월" / "N년 M개월" 포맷
+  - `currentGuide`: 정확 월령 없으면 이전 달 폴백
+- `CareGuideView.swift` — Android CareGuideScreen 대응
+  - 현재 월령 강조 카드: primary 배경 + 건식/습식/물/간식 4개 칩 + 적정 체중
+  - 월령별 카드 리스트: 현재 달 primary 배지 강조
+  - 품종 미등록 안내 화면 (`hasBreed = false`)
+
+#### NearbyVetView (`Screens/NearbyVet/`)
+- `NearbyVetViewModel.swift` — KotlinViewModel 없이 Swift 전용 구현
+  - `CLLocationManager`: 권한 요청 / 위치 조회 / 거부 시 `locationDenied` 처리
+  - Google Places API (New) `POST /v1/places:searchNearby` URLSession async/await 호출
+    - `X-Goog-Api-Key` / `X-Goog-FieldMask` 헤더, includedTypes: veterinary_care, 반경 2km
+  - `CLLocation.distance(from:)` 거리 계산 후 오름차순 정렬
+  - `selectVet()`: 선택 토글 + 지도 카메라 이동
+- `NearbyVetView.swift` — Android NearbyVetScreen 대응
+  - MapKit `Map` + `MapAnnotation` 핀 (선택 핀 primary 색상/확대)
+  - 화면 분할: 지도 40% / 목록 60%
+  - `VetCard`: 이름/주소/거리/별점/영업상태 + 전화(`tel:` Link) + 길찾기(Apple Maps MKMapItem)
+  - 위치 권한 거부 → "설정 열기" 버튼, 오류 → 재시도 버튼
+
+### iOS 네비게이션 구조 개선
+
+#### 드로어 네비게이션 수정 (`Screens/Main/`)
+- `DrawerState`: `selectedItem` @Published 이전, `goHome()` 메서드 추가
+- `MainDrawerView`: 로컬 `@State selectedItem` 제거 → `drawerState.selectedItem` 일원화
+- Weight / Vaccination / Medication / DiaryView TopBar: `chevron.left` back 버튼 → `DrawerHamburgerButton` 교체
+- `DrawerHamburgerButton`: `tint: Color` 파라미터 추가 (primary 배경에서 onPrimary 색상 사용)
+
+### iOS AdMob 배너 광고 연동
+
+- `project.pbxproj`: GoogleMobileAds SPM 패키지 추가 (`upToNextMajorVersion 11.0.0`)
+- `Info.plist`: `GADApplicationIdentifier`, `ADMOB_BANNER_ID`, `SKAdNetworkItems` 추가
+- `Config.xcconfig`: `ADMOB_APP_ID` / `ADMOB_BANNER_ID` 설정
+- `iOSApp.swift`: `GADMobileAds.sharedInstance().start()` SDK 초기화
+- `BannerAdView.swift`: `GADBannerView` UIViewRepresentable 래퍼
+  - `Info.plist`에서 `ADMOB_BANNER_ID` 자동 읽기, 실패 시 테스트 ID 폴백
+- `HomeView.swift`: 하단 고정 배너 광고 (320×50pt) 추가
+
+### iOS 버그 수정 / 개선
+
+#### 사진 경로 절대→파일명 방식 통일
+- `MyCatTheme.swift`: `resolvePhotoPath()` 유틸리티 추가
+  - 파일명 → Documents 절대경로 변환, 기존 절대경로 입력 시 하위호환 처리
+- `ProfileRegisterView.swift`: `saveImageToDocuments()` 반환값을 파일명으로 변경 (절대경로 X)
+- `DiaryView.swift`: `DiaryPhotoView` / `DiaryPhotoEditView`에 `resolvePhotoPath()` 적용
+- `MainDrawerView.swift`: 드로어 프로필 사진에 `resolvePhotoPath()` 적용
+- `HealthCheckView.swift`: `textSecondary` → `secondary` 색상 키 수정
+
+---
+
 ## 2026-04-09
 
 ### iOS 화면 구현 — HomeScreen + MainDrawerView + 세부 화면 5종
