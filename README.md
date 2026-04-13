@@ -1,5 +1,10 @@
 This is a Kotlin Multiplatform project targeting Android, iOS.
 
+## 문서
+
+- [CHANGELOG](./CHANGELOG.md) — 버전별 변경 이력
+- [TROUBLESHOOTING](./TROUBLESHOOTING.md) — 개발 중 발생한 이슈 및 해결 방법
+
 * [/composeApp](./composeApp/src) is for code that will be shared across your Compose Multiplatform applications.
   It contains several subfolders:
   - [commonMain](./composeApp/src/commonMain/kotlin) is for code that’s common for all targets.
